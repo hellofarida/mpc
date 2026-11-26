@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function SiteFooter() {
   return (
     <footer className="mt-8 space-y-1 border-t px-4 py-4 text-xs text-muted-foreground">
@@ -17,6 +19,11 @@ export function SiteFooter() {
           MPC project on iNaturalist
         </a>
         , shared under CC BY-NC by their observers.
+      </p>
+      <p>
+        <Link className="underline" href="/privacy">
+          Privacy
+        </Link>
       </p>
     </footer>
   );
