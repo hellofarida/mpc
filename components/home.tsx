@@ -26,6 +26,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
   const [shown, setShown] = useState<string | null>(null); // kept while the panel slides closed
   const [picked, setPicked] = useState<string[]>([]);
   const opened = useRef(false);
+  const panelEntry = useRef(false); // true while the open panel has its own history entry
 
   useEffect(() => {
     if (opened.current) return;
@@ -37,7 +38,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
   useEffect(() => {
     const plan = () => {
       setMode("plan");
-      setSelected(null);
+      closePanel();
     };
     const t = location.hash === "#plan-walk" ? setTimeout(plan, 0) : undefined;
     window.addEventListener("mpc:plan-walk", plan);
@@ -47,11 +48,25 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
     };
   }, []);
 
+  // The panel gets a history entry when it opens, so the Back button closes it instead of leaving the page.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSelected(null);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closePanel();
+    const onPop = () => {
+      panelEntry.current = false;
+      setSelected(null);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", onPop);
+    };
   }, []);
+
+  function closePanel() {
+    if (panelEntry.current) history.back(); // popstate then closes it
+    else setSelected(null);
+  }
 
   function locate() {
     if (!navigator.geolocation) return setLocState("denied");
@@ -67,6 +82,10 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
   }
 
   function open(id: string) {
+    if (!panelEntry.current) {
+      history.pushState(null, "", location.href);
+      panelEntry.current = true;
+    }
     setShown(id);
     setSelected(id);
   }
@@ -156,7 +175,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
       </aside>
 
       <div className="relative order-1 h-[38%] shrink-0 md:order-2 md:h-auto md:flex-1">
-        <SiteMap here={here} picked={mode === "plan" ? picked : []} onSelect={onSiteChosen} />
+        <SiteMap here={here} picked={mode === "plan" ? picked : selected ? [selected] : []} onSelect={onSiteChosen} />
       </div>
 
       <section
@@ -176,7 +195,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
           >
             Open in new tab
           </a>
-          <Button variant="outline" size="sm" onClick={() => setSelected(null)} aria-label="Close site details">
+          <Button variant="outline" size="sm" onClick={closePanel} aria-label="Close site details">
             Close
           </Button>
         </div>

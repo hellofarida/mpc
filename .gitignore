@@ -42,3 +42,6 @@ next-env.d.ts
 
 # example env is safe to commit
 !.env.example
+
+# Trial fonts (licence forbids public distribution)
+/app/fonts/

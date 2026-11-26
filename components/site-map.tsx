@@ -7,7 +7,7 @@ import { CircleMarker, MapContainer, Marker, TileLayer } from "react-leaflet";
 import { SITES, siteCentre } from "@/lib/sites";
 
 const icons = new Map<string, L.DivIcon>();
-function pinIcon(n: number, picked: boolean) {
+function pinIcon(n: number, picked: boolean) { // picked = highlighted: bigger, green, with a dark ring
   const key = `${n}-${picked}`;
   const cached = icons.get(key);
   if (cached) return cached;
@@ -16,13 +16,14 @@ function pinIcon(n: number, picked: boolean) {
   return icon;
 }
 
-function makeIcon(n: number, picked: boolean) {
+function makeIcon(n: number, on: boolean) {
+  const size = on ? 38 : 28;
+  const ring = on ? "box-shadow:0 0 0 3px #173404,0 2px 6px rgba(0,0,0,.6)" : "box-shadow:0 1px 4px rgba(0,0,0,.5)";
   return L.divIcon({
     className: "",
-    html: `<div style="background:${picked ? "#3b6d11" : "#b45309"};color:#fff;width:28px;height:28px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:600 13px sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.5)">${n}</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14],
+    html: `<div style="background:${on ? "#3b6d11" : "#b45309"};color:#fff;width:${size}px;height:${size}px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:600 ${on ? 16 : 13}px var(--font-instrument-sans),sans-serif;${ring}">${n}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 }
 
@@ -67,6 +68,7 @@ function LeafletMap({ here, picked, onSelect }: Props) {
             position={[c.lat, c.lng]}
             icon={pinIcon(s.number, picked.includes(s.id))}
             title={s.name}
+            zIndexOffset={picked.includes(s.id) ? 1000 : 0}
             eventHandlers={{ click: () => onSelect(s.id) }}
           />
         );
