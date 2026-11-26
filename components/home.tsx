@@ -1,31 +1,56 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WalkPlanner } from "@/components/walk-planner";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { buttonVariants, Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { logEvent } from "@/lib/events";
-import { SITES, distanceM, siteCentre } from "@/lib/sites";
+import { SITES, distanceM, siteCentre, sortWestToEast, type Site } from "@/lib/sites";
+import { MAX_STOPS, MIN_STOPS, buildAppleWalkUrl, buildGoogleWalkUrl, googleDirectionsUrl } from "@/lib/walk";
 
 const SiteMap = dynamic(() => import("@/components/site-map"), {
   ssr: false,
-  loading: () => <div className="h-80 w-full animate-pulse rounded-xl bg-muted" />,
+  loading: () => <div className="h-full w-full animate-pulse bg-muted" />,
 });
 
 type Here = { lat: number; lng: number };
+type Mode = "search" | "plan";
 
-export function Home() {
+export function Home({ details }: { details: Record<string, ReactNode> }) {
   const [here, setHere] = useState<Here | null>(null);
   const [locState, setLocState] = useState<"idle" | "asking" | "denied">("idle");
-  const [planning, setPlanning] = useState(false);
+  const [mode, setMode] = useState<Mode>("search");
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<string | null>(null); // site open in the slide-out
+  const [shown, setShown] = useState<string | null>(null); // kept while the panel slides closed
+  const [picked, setPicked] = useState<string[]>([]);
   const opened = useRef(false);
 
   useEffect(() => {
     if (opened.current) return;
     opened.current = true;
     logEvent("page_open");
+  }, []);
+
+  // "Plan walk" in the nav switches to plan mode (on arrival with #plan-walk, or from this page via an event).
+  useEffect(() => {
+    const plan = () => {
+      setMode("plan");
+      setSelected(null);
+    };
+    const t = location.hash === "#plan-walk" ? setTimeout(plan, 0) : undefined;
+    window.addEventListener("mpc:plan-walk", plan);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("mpc:plan-walk", plan);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSelected(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   function locate() {
@@ -41,63 +66,217 @@ export function Home() {
     );
   }
 
-  const list = SITES.map((s) => ({ s, d: here ? distanceM(here, siteCentre(s)) : null })).sort((a, b) =>
-    a.d !== null && b.d !== null ? a.d - b.d : a.s.number - b.s.number,
-  );
+  function open(id: string) {
+    setShown(id);
+    setSelected(id);
+  }
+
+  function toggle(id: string) {
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < MAX_STOPS ? [...p, id] : p));
+  }
+
+  function onSiteChosen(id: string) {
+    if (mode === "plan") toggle(id);
+    else open(id);
+  }
+
+  const q = query.trim().toLowerCase();
+  const list = SITES.map((s) => ({ s, d: here ? distanceM(here, siteCentre(s)) : null }))
+    .filter(({ s }) => mode === "plan" || !q || `${s.name} ${s.suburb}`.toLowerCase().includes(q))
+    .sort((a, b) => (a.d !== null && b.d !== null ? a.d - b.d : a.s.number - b.s.number));
+
+  const stops = sortWestToEast(SITES.filter((s) => picked.includes(s.id)));
+  const ready = stops.length >= MIN_STOPS && stops.length <= MAX_STOPS;
 
   return (
-    <main className="mx-auto w-full max-w-xl space-y-4 p-4">
-      <h1 className="text-2xl font-semibold">Melbourne Pollinator Corridor guide</h1>
-      <SiteMap here={here} />
+    <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:flex-row">
+      <aside className="order-2 flex min-h-0 flex-1 flex-col border-t md:order-1 md:w-96 md:flex-none md:border-r md:border-t-0">
+        <div className="space-y-2 border-b p-3">
+          <div role="group" aria-label="Mode" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
+            {(["search", "plan"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={mode === m}
+                onClick={() => setMode(m)}
+                className={`rounded-md py-1.5 font-medium capitalize ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          {mode === "search" ? (
+            <Input
+              type="search"
+              placeholder="Search gardens"
+              aria-label="Search gardens"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          ) : (
+            <p className="text-sm" role="status">
+              {picked.length < MIN_STOPS
+                ? `Pick ${MIN_STOPS} to ${MAX_STOPS} sites for your walk. ${picked.length} picked.`
+                : `${picked.length} of ${MAX_STOPS} picked${picked.length === MAX_STOPS ? " (the most)" : ""}. Ready to open.`}
+            </p>
+          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {here ? (
+              <span>Nearest sites first. Your location stays on your phone.</span>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={locate} disabled={locState === "asking"}>
+                  {locState === "asking" ? "Finding you…" : "Show where I am"}
+                </Button>
+                <span>{locState === "denied" ? "Couldn't get your location." : "Stays on your phone."}</span>
+              </>
+            )}
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <p className="text-sm">
-          Your location stays on your phone. It&apos;s never sent or stored.
-        </p>
-        {here ? (
-          <p className="text-sm text-muted-foreground">Showing the nearest gardens first.</p>
-        ) : (
-          <Button variant="outline" onClick={locate} disabled={locState === "asking"}>
-            {locState === "asking" ? "Finding you…" : "Show where I am"}
-          </Button>
+        <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+          {list.length === 0 && <li className="text-sm text-muted-foreground">No sites match that search.</li>}
+          {list.map(({ s, d }) => (
+            <SiteCard
+              key={s.id}
+              site={s}
+              distance={d}
+              mode={mode}
+              active={selected === s.id}
+              checked={picked.includes(s.id)}
+              disabled={mode === "plan" && !picked.includes(s.id) && picked.length >= MAX_STOPS}
+              onChoose={() => onSiteChosen(s.id)}
+            />
+          ))}
+        </ul>
+
+        {mode === "plan" && ready && (
+          <PlanBar stops={stops} here={here} />
         )}
-        {locState === "denied" && (
-          <p className="text-sm text-muted-foreground" role="status">
-            We couldn&apos;t get your location. The map and list still work.
-          </p>
-        )}
+      </aside>
+
+      <div className="relative order-1 h-[38%] shrink-0 md:order-2 md:h-auto md:flex-1">
+        <SiteMap here={here} picked={mode === "plan" ? picked : []} onSelect={onSiteChosen} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{here ? "Nearest gardens" : "Gardens"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="divide-y">
-            {list.map(({ s, d }) => (
-              <li key={s.id}>
-                <Link href={`/sites/${s.id}`} className="flex items-center justify-between gap-2 py-2 text-sm">
-                  <span>
-                    {s.number}. {s.name}
-                    <span className="block text-xs text-muted-foreground">{s.suburb}</span>
-                  </span>
-                  {d !== null && (
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {d < 1000 ? `${Math.round(d / 10) * 10} m` : `${(d / 1000).toFixed(1)} km`}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <section
+        aria-label="Site details"
+        aria-hidden={!selected}
+        inert={!selected}
+        className={`fixed bottom-0 left-0 right-0 top-14 z-[1400] flex flex-col bg-background shadow-xl transition-transform duration-200 md:left-96 md:right-auto md:w-[28rem] ${
+          selected ? "translate-x-0" : "invisible translate-x-full md:-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2 border-b p-2">
+          <a
+            href={shown ? `/sites/${shown}` : "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Open in new tab
+          </a>
+          <Button variant="outline" size="sm" onClick={() => setSelected(null)} aria-label="Close site details">
+            Close
+          </Button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">{selected && details[selected]}</div>
+      </section>
+    </div>
+  );
+}
 
-      {planning ? (
-        <WalkPlanner here={here} />
+function SiteCard({
+  site,
+  distance,
+  mode,
+  active,
+  checked,
+  disabled,
+  onChoose,
+}: {
+  site: Site;
+  distance: number | null;
+  mode: Mode;
+  active: boolean;
+  checked: boolean;
+  disabled: boolean;
+  onChoose: () => void;
+}) {
+  const c = siteCentre(site);
+  const dist = distance === null ? null : distance < 1000 ? `${Math.round(distance / 10) * 10} m` : `${(distance / 1000).toFixed(1)} km`;
+  const body = (
+    <>
+      <span className="block font-medium">
+        {site.number}. {site.name}
+      </span>
+      <span className="block text-xs text-muted-foreground">
+        {site.suburb}
+        {dist ? ` · ${dist}` : ""}
+      </span>
+    </>
+  );
+  return (
+    <li className={`rounded-xl border p-3 text-sm ${active || (mode === "plan" && checked) ? "border-primary bg-muted" : ""} ${disabled ? "opacity-50" : ""}`}>
+      {mode === "plan" ? (
+        <label className="flex cursor-pointer items-center gap-3">
+          <Checkbox checked={checked} disabled={disabled} onCheckedChange={onChoose} />
+          <span>{body}</span>
+        </label>
       ) : (
-        <Button onClick={() => setPlanning(true)}>Plan my walk</Button>
+        <>
+          <button type="button" onClick={onChoose} className="block w-full text-left">
+            {body}
+          </button>
+          <a
+            href={googleDirectionsUrl(c)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-xs underline"
+            onClick={() => logEvent("directions_tap", { siteId: site.id, mapsApp: "google" })}
+          >
+            Open in maps
+          </a>
+        </>
       )}
-    </main>
+    </li>
+  );
+}
+
+function PlanBar({ stops, here }: { stops: Site[]; here: Here | null }) {
+  const google = buildGoogleWalkUrl(stops, here);
+  const apple = buildAppleWalkUrl(stops);
+  const ids = stops.map((s) => s.id);
+  if (!google || !apple) return null;
+  return (
+    <div className="space-y-2 border-t bg-background p-3 text-sm">
+      <p>
+        Order: {stops.map((s) => s.name).join(" → ")}
+        {here ? " (from where you are)" : ""}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <a
+          href={google}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={buttonVariants({ variant: "default" })}
+          onClick={() => logEvent("walk_open", { stops: ids, mapsApp: "google" })}
+        >
+          Open in Google Maps
+        </a>
+        <a
+          href={apple}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={buttonVariants({ variant: "outline" })}
+          onClick={() => logEvent("walk_open", { stops: ids, mapsApp: "apple" })}
+        >
+          Apple Maps
+        </a>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Apple Maps can only route between two points, so it opens directions to the first stop ({stops[0].name}).
+      </p>
+    </div>
   );
 }

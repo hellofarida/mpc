@@ -14,7 +14,8 @@ const lngs = [url.searchParams.get("destination")!, ...url.searchParams.get("way
 assert.equal(Math.max(...lngs), lngs[0]);
 assert.ok(buildGoogleWalkUrl(four, { lat: -37.8, lng: 144.9 })!.includes("origin=-37.80000%2C144.90000"));
 assert.equal(buildGoogleWalkUrl([SITES[0]]), null);
-assert.equal(buildGoogleWalkUrl(SITES.slice(0, 5)), null);
+assert.ok(buildGoogleWalkUrl(SITES.slice(0, 5)));
+assert.equal(buildGoogleWalkUrl(SITES.slice(0, 6)), null);
 assert.ok(buildAppleWalkUrl(four)!.startsWith("https://maps.apple.com/?daddr=-37."));
 console.log("walk checks PASS");
 console.log(url.toString());

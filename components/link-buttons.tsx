@@ -4,7 +4,7 @@ import { LeaveLink } from "@/components/leave-link";
 import { logEvent } from "@/lib/events";
 import { HEARTSCAPES_JOIN_URL, HEARTSCAPES_VOLUNTEER_URL, INAT_UPLOAD_URL } from "@/lib/links";
 
-export function LogSightingButton({ siteId }: { siteId: string }) {
+export function LogSightingButton({ siteId }: { siteId?: string }) {
   return (
     <LeaveLink
       href={INAT_UPLOAD_URL}
@@ -17,7 +17,7 @@ export function LogSightingButton({ siteId }: { siteId: string }) {
   );
 }
 
-export function JoinButtons({ siteId }: { siteId: string }) {
+export function JoinButtons({ siteId }: { siteId?: string }) {
   return (
     <div className="flex flex-wrap gap-2">
       <LeaveLink

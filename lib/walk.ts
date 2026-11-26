@@ -1,7 +1,7 @@
 import { siteCentre, sortWestToEast, type Site } from "@/lib/sites";
 
 export const MIN_STOPS = 2;
-export const MAX_STOPS = 4;
+export const MAX_STOPS = 5;
 
 type Point = { lat: number; lng: number };
 

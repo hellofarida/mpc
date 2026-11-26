@@ -15,7 +15,7 @@ export type EventName =
 export type EventExtras = {
   siteId?: string;
   mapsApp?: "google" | "apple";
-  stops?: string[]; // walk_open only: 2–4 site IDs
+  stops?: string[]; // walk_open only: 2–5 site IDs
 };
 
 /**

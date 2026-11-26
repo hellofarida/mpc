@@ -2,15 +2,24 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CircleMarker, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, TileLayer } from "react-leaflet";
 import { SITES, siteCentre } from "@/lib/sites";
 
-function pinIcon(n: number) {
+const icons = new Map<string, L.DivIcon>();
+function pinIcon(n: number, picked: boolean) {
+  const key = `${n}-${picked}`;
+  const cached = icons.get(key);
+  if (cached) return cached;
+  const icon = makeIcon(n, picked);
+  icons.set(key, icon);
+  return icon;
+}
+
+function makeIcon(n: number, picked: boolean) {
   return L.divIcon({
     className: "",
-    html: `<div style="background:#b45309;color:#fff;width:28px;height:28px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:600 13px sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.5)">${n}</div>`,
+    html: `<div style="background:${picked ? "#3b6d11" : "#b45309"};color:#fff;width:28px;height:28px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:600 13px sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.5)">${n}</div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
     popupAnchor: [0, -14],
@@ -23,7 +32,9 @@ type Here = { lat: number; lng: number } | null;
  * With cacheComponents the page is hidden (effects cleaned up) when you navigate away and shown again on Back.
  * Leaflet's map is destroyed by that cleanup and can't be reused, so mount a fresh one each time the page is visible.
  */
-export default function SiteMap({ here }: { here: Here }) {
+type Props = { here: Here; picked: string[]; onSelect: (id: string) => void };
+
+export default function SiteMap({ here, picked, onSelect }: Props) {
   const [live, setLive] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setLive(true), 0);
@@ -32,17 +43,17 @@ export default function SiteMap({ here }: { here: Here }) {
       setLive(false);
     };
   }, []);
-  if (!live) return <div className="h-80 w-full rounded-xl bg-muted" />;
-  return <LeafletMap here={here} />;
+  if (!live) return <div className="h-full w-full bg-muted" />;
+  return <LeafletMap here={here} picked={picked} onSelect={onSelect} />;
 }
 
-function LeafletMap({ here }: { here: Here }) {
+function LeafletMap({ here, picked, onSelect }: Props) {
   return (
     <MapContainer
       center={[-37.8345, 144.9695]}
       zoom={14}
       scrollWheelZoom={false}
-      className="h-80 w-full rounded-xl"
+      className="h-full w-full"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
@@ -51,13 +62,13 @@ function LeafletMap({ here }: { here: Here }) {
       {SITES.map((s) => {
         const c = siteCentre(s);
         return (
-          <Marker key={s.id} position={[c.lat, c.lng]} icon={pinIcon(s.number)}>
-            <Popup>
-              <Link href={`/sites/${s.id}`} className="font-medium underline">
-                {s.name}
-              </Link>
-            </Popup>
-          </Marker>
+          <Marker
+            key={s.id}
+            position={[c.lat, c.lng]}
+            icon={pinIcon(s.number, picked.includes(s.id))}
+            title={s.name}
+            eventHandlers={{ click: () => onSelect(s.id) }}
+          />
         );
       })}
       {here && (
