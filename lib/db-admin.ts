@@ -1,7 +1,10 @@
 // Server-side WRITES to the content tables. For scripts only (never import from the app):
 // it needs SUPABASE_SERVICE_ROLE_KEY, a secret that must never be in the browser or prefixed NEXT_PUBLIC_.
 import { createClient } from "@supabase/supabase-js";
-import { metaToRow, siteToRow, sightingToRow, summaryToRow } from "./db-rows";
+import {
+  metaToRow, siteFromRow, siteToRow, sightingToRow, summaryFromRow, summaryToRow,
+  type SightingRow, type SiteRow, type SummaryRow,
+} from "./db-rows";
 import type { SightingsFile } from "./sightings";
 import type { Site } from "./sites";
 import type { Summary } from "./summary";
@@ -46,4 +49,39 @@ export async function pushSummaries(summaries: Record<string, Summary>) {
   const rows = Object.entries(summaries).map(([id, s]) => summaryToRow(id, s));
   check("summaries", (await admin().from("summaries").upsert(rows)).error);
   return rows.length;
+}
+
+// ---------- reads for the weekly refresh (same tables the app reads) ----------
+
+async function readAll<T>(table: string, order: string): Promise<T[]> {
+  const db = admin();
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db.from(table).select("*").order(order).range(from, from + 999);
+    check(table, error);
+    out.push(...((data ?? []) as T[]));
+    if (!data || data.length < 1000) return out;
+  }
+}
+
+export async function readSites(): Promise<Site[]> {
+  const rows = await readAll<SiteRow>("sites", "number");
+  if (rows.length === 0) throw new Error("The sites table is empty. Run migration 002 and npm run db:seed first.");
+  return rows.map(siteFromRow);
+}
+
+/** Observation ids currently saved, per site. Used to see which sites changed. */
+export async function readSightingIds(): Promise<Map<string, Set<number>>> {
+  const out = new Map<string, Set<number>>();
+  for (const r of await readAll<SightingRow>("sightings", "id")) {
+    if (!out.has(r.site_id)) out.set(r.site_id, new Set());
+    out.get(r.site_id)!.add(r.id);
+  }
+  return out;
+}
+
+export async function readSummaries(): Promise<Record<string, Summary>> {
+  const { data, error } = await admin().from("summaries").select("*");
+  check("summaries", error);
+  return Object.fromEntries((data as SummaryRow[]).map((r) => [r.site_id, summaryFromRow(r)]));
 }

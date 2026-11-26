@@ -1,0 +1,38 @@
+name: Weekly refresh
+
+# Fetches new MPC sightings from iNaturalist, saves them, and rewrites the summaries of gardens that changed.
+# Monday ~2-3am Melbourne time. Run it by hand from the Actions tab (Run workflow); tick "dry run" to only look.
+on:
+  schedule:
+    - cron: "0 16 * * 0" # Sunday 16:00 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (fetch and compare only, write nothing)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Refresh
+        run: npx tsx scripts/refresh.ts ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

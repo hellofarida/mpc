@@ -17,6 +17,9 @@ The app reads gardens, sightings and summaries from the database (public read-on
 - `npm run sightings`: re-saves the last 12 months of MPC iNaturalist sightings within ~100 m of each address to `data/sightings.json`. Re-run before a demo.
   Observations are CC BY-NC: always credit the observer, link to the original, don't re-host photos, don't train AI on them.
 
+## Weekly refresh
+`npm run refresh` fetches new sightings, saves them to the database and rewrites the summary of any garden whose sightings changed (AI words it, code checks it, template fallback). `-- --dry-run` only looks; `-- --no-ai` uses templates. It also runs by itself every Monday morning (Melbourne) on GitHub Actions (`.github/workflows/weekly-refresh.yml`; you can also run it from the Actions tab). Add three repository secrets first (GitHub: Settings > Secrets and variables > Actions): `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`. The site picks up new data within the hour. A failed run emails you from GitHub.
+
 ## Clean-up
 `npm run test:db` adds a test check-in and test events from device `00000000-0000-4000-8000-000000007e57`. Remove them in the SQL Editor:
 
