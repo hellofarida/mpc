@@ -1,0 +1,104 @@
+{
+  "source": "Heartscapes, MPC sites for people to visit (PDF, Nov 2025)",
+  "coordinatesSource": "OpenStreetMap (Nominatim/Overpass), looked up 26 Nov 2026. Addresses marked approx only resolved to the street: check them on the map.",
+  "sites": [
+    {
+      "id": "south-melbourne-bee-gardens",
+      "number": 1,
+      "name": "South Melbourne BEE Gardens",
+      "suburb": "South Melbourne",
+      "gardens": 13,
+      "areaM2": 134,
+      "note": "Neighbouring residents' street gardens aren't part of the corridor. Look for the MPC signs.",
+      "addresses": [
+        { "label": "Corner of Cobden St and Moray St", "lat": -37.83616, "lng": 144.96485 }
+      ]
+    },
+    {
+      "id": "101-cobden-st",
+      "number": 2,
+      "name": "101 Cobden St",
+      "suburb": "South Melbourne",
+      "gardens": 2,
+      "gardensNote": "2 gardens and a laneway",
+      "areaM2": 30,
+      "note": "Neighbouring residents' street gardens aren't part of the corridor. Look for the MPC signs.",
+      "addresses": [
+        { "label": "101 Cobden St, 99 Cobden St and the laneway in between", "lat": -37.83604, "lng": 144.96526, "approx": true }
+      ]
+    },
+    {
+      "id": "napier-st-gardens",
+      "number": 3,
+      "name": "Napier St Gardens",
+      "suburb": "South Melbourne",
+      "gardens": 5,
+      "areaM2": 76,
+      "addresses": [
+        { "label": "299 Moray St, plus across the road", "lat": -37.83394, "lng": 144.96378, "approx": true },
+        { "label": "135 Napier St", "lat": -37.83613, "lng": 144.96351 },
+        { "label": "161 Napier St", "lat": -37.83634, "lng": 144.96281 }
+      ]
+    },
+    {
+      "id": "bank-st-1st-site",
+      "number": 4,
+      "name": "Bank St 1st site",
+      "suburb": "South Melbourne",
+      "gardens": 3,
+      "areaM2": 42,
+      "addresses": [
+        { "label": "Corner of Bank St and Emerald Way", "lat": -37.83326, "lng": 144.96402 },
+        { "label": "126 Bank St (Pet Grocer)", "lat": -37.83288, "lng": 144.96455 }
+      ]
+    },
+    {
+      "id": "bank-st-2nd-site",
+      "number": 5,
+      "name": "Bank St 2nd site",
+      "suburb": "South Melbourne",
+      "gardens": 3,
+      "areaM2": 201,
+      "note": "The Park Towers Reserve garden is outside the fenced community garden.",
+      "addresses": [
+        { "label": "Foundry Site Park", "lat": -37.83526, "lng": 144.95954 },
+        { "label": "Park Towers Reserve", "lat": -37.83519, "lng": 144.95824 },
+        { "label": "246–258 Bank St", "lat": -37.83482, "lng": 144.95771 }
+      ]
+    },
+    {
+      "id": "st-martins-youth-arts-centre",
+      "number": 6,
+      "name": "St Martins Youth Arts Centre",
+      "suburb": "South Yarra",
+      "gardens": 10,
+      "areaM2": 450,
+      "addresses": [
+        { "label": "20–36 St Martins Place (off St Martins Lane), South Yarra", "lat": -37.83521, "lng": 144.98152 }
+      ]
+    },
+    {
+      "id": "melbourne-grammar-wadhurst",
+      "number": 7,
+      "name": "Melbourne Grammar School – Wadhurst Entrance",
+      "suburb": "Melbourne",
+      "gardens": 2,
+      "areaM2": 8,
+      "note": "Managed by Melbourne Grammar School. About 100 m from St Kilda Rd.",
+      "addresses": [
+        { "label": "Wadhurst Entrance, Domain Rd, South Yarra", "lat": -37.83315, "lng": 144.97401 }
+      ]
+    },
+    {
+      "id": "port-melbourne-primary",
+      "number": 8,
+      "name": "Port Melbourne Primary School",
+      "suburb": "Port Melbourne",
+      "gardens": 5,
+      "areaM2": 450,
+      "addresses": [
+        { "label": "Across the road from 25 Poolman St, Port Melbourne", "lat": -37.83628, "lng": 144.93158 }
+      ]
+    }
+  ]
+}
