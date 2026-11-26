@@ -1,0 +1,60 @@
+{
+  "summaries": {
+    "south-melbourne-bee-gardens": {
+      "text": "Over the past 12 months, South Melbourne BEE Gardens logged 54 sightings of 42 distinct species from 13 observers, with butterflies and moths leading at 17 sightings. The Australian Painted Lady was the most recorded species with 6 sightings, and the latest sighting was on 2026-11-20.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:23:18.909Z",
+      "dataUpTo": "2026-11-24"
+    },
+    "101-cobden-st": {
+      "text": "Over 12 months at 101 Cobden St, South Melbourne, 41 sightings of 40 different species were recorded, including 12 butterflies and moths, 4 beetles and 3 native bees. The Metallic Shield Bug was seen most often, with 2 sightings, and the latest record was on 2026-11-17.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:23:21.915Z",
+      "dataUpTo": "2026-11-24"
+    },
+    "napier-st-gardens": {
+      "text": "Over the past 12 months, Napier St Gardens in South Melbourne logged 7 sightings of 7 different species by 3 observers, including bees, native bees and butterflies and moths. Recorded species include the Black Cobweb Spider, Chilalictus and False Garden Mantis.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:23:24.968Z",
+      "dataUpTo": "2026-11-24"
+    },
+    "bank-st-1st-site": {
+      "text": "Over the past 12 months, the Bank St 1st site in South Melbourne recorded 4 sightings of 4 different species, with one each of bees, native bees, butterflies and moths, and hoverflies. Species seen include Austrosyrphus, Lasioglossum and Saltbush Blue.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:23:31.318Z",
+      "dataUpTo": "2026-11-24"
+    },
+    "bank-st-2nd-site": {
+      "text": "Over 12 months at Bank St 2nd site in South Melbourne, 13 observers logged 49 sightings of 48 different species, including 5 wasp and 3 native bee sightings. The Southern Marbled Gecko was the most recorded species, with 2 sightings.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:22:54.692Z",
+      "dataUpTo": "2026-11-24"
+    },
+    "st-martins-youth-arts-centre": {
+      "text": "Over 12 months, St Martins Youth Arts Centre in South Yarra logged 78 sightings of 59 distinct species from 8 observers, including butterflies and moths, bees, native bees and beetles. The Tri-horned treehopper was recorded most often, with 4 sightings.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:23:37.131Z",
+      "dataUpTo": "2026-11-24"
+    },
+    "melbourne-grammar-wadhurst": {
+      "text": "Over 12 months, 13 observers recorded 28 sightings of 22 different species at Melbourne Grammar School – Wadhurst Entrance, including 4 butterflies and moths and 2 beetles. The Australian Wood Duck was seen most often, with 3 sightings, followed by African Black Beetle and mica cap with 2 each.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:23:41.653Z",
+      "dataUpTo": "2026-11-24"
+    },
+    "port-melbourne-primary": {
+      "text": "Over 12 months, Port Melbourne Primary School logged 159 sightings of 117 distinct species, led by butterflies and moths with 34 sightings. Schellenberg's soldier bug was the most recorded species with 5 sightings, followed by the Heliotrope Moth and Saltbush Blue with 4 each.",
+      "source": "ai",
+      "model": "claude-opus-5-5",
+      "generatedAt": "2026-11-26T05:23:39.616Z",
+      "dataUpTo": "2026-11-24"
+    }
+  }
+}

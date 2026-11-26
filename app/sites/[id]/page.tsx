@@ -8,6 +8,8 @@ import { LeaveLink } from "@/components/leave-link";
 import { JoinButtons, LogSightingButton } from "@/components/link-buttons";
 import { GardenViewLogger } from "@/components/view-logger";
 import { SITES, getSite, siteCentre } from "@/lib/sites";
+import { computeFacts } from "@/lib/facts";
+import { getSummary } from "@/lib/summary";
 import { displayName, type SightingsFile } from "@/lib/sightings";
 import sightingsData from "@/data/sightings.json";
 
@@ -32,6 +34,7 @@ async function Garden({ params }: { params: Promise<{ id: string }> }) {
   if (!site) notFound();
 
   const centre = siteCentre(site);
+  const summary = getSummary(site, computeFacts(site.id, data));
   const sightings = data.sightings
     .filter((s) => s.siteId === site.id)
     .sort((a, b) => b.observedOn.localeCompare(a.observedOn))
@@ -74,9 +77,13 @@ async function Garden({ params }: { params: Promise<{ id: string }> }) {
         <CardHeader>
           <CardTitle>About this garden</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {/* Section 3: AI summary goes here */}
-          <div data-slot="ai-summary">Summary coming soon.</div>
+        <CardContent className="space-y-2 text-sm" data-slot="ai-summary">
+          <p>{summary.text}</p>
+          <p className="text-xs text-muted-foreground">
+            {summary.source === "ai"
+              ? `Written by AI from the sightings data, checked by code. Data up to ${summary.dataUpTo}.`
+              : `Summary from the sightings data. Data up to ${summary.dataUpTo}.`}
+          </p>
         </CardContent>
       </Card>
 

@@ -10,9 +10,12 @@
     "sightings": "tsx scripts/fetch-sightings.ts",
     "typecheck": "tsc --noEmit",
     "test:walk": "tsx scripts/check-walk.ts",
-    "test:db": "node --env-file=.env.local scripts/test-db-rules.mjs"
+    "test:db": "node --env-file=.env.local scripts/test-db-rules.mjs",
+    "summaries": "node --env-file=.env.local node_modules/.bin/tsx scripts/summaries.ts",
+    "test:facts": "tsx scripts/check-facts.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "@base-ui/react": "^1.9.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
