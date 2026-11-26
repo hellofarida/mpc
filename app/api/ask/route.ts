@@ -1,7 +1,6 @@
 import { answerQuestion } from "@/lib/chat";
 import { makeAi } from "@/lib/chat-ai";
-import type { SightingsFile } from "@/lib/sightings";
-import sightingsData from "@/data/sightings.json";
+import { getSightingsFile, getSites } from "@/lib/content";
 
 const MAX_BODY_CHARS = 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -37,12 +36,14 @@ export async function POST(request: Request) {
   }
   if (typeof body.siteId !== "string") return json({ kind: "invalid", message: "Unknown garden." }, 400);
 
+  const [sites, file] = await Promise.all([getSites(), getSightingsFile()]);
   const reply = await answerQuestion(
     body.siteId,
     body.question,
     aiAllowed() ? makeAi() : null,
-    sightingsData as SightingsFile,
+    file,
     (msg) => console.warn(`[ask] ${msg}`),
+    sites,
   );
   return json(reply, reply.kind === "invalid" ? 400 : 200);
 }

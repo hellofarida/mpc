@@ -45,7 +45,7 @@ Sites 1 and 2 sit among residents' own street gardens that aren't part of the MP
 
 ## Stack (see Tech stack.md)
 - Next.js (App Router) + Tailwind + shadcn/ui (the same patterns as the Job Tracker: https://github.com/hellofarida/job-tracker), react-leaflet loaded client-only.
-- Data: JSON files for the sites, the saved sightings and the AI summaries. Supabase holds only **two tables, `checkins` and `events`**, insert-only for anonymous users via RLS.
+- Data: JSON files for the sites, the saved sightings and the AI summaries. Supabase holds `checkins` and `events` (insert-only for anonymous users via RLS) and, from Phase 1, the content tables `sites`, `sightings`, `summaries`, `corridor_meta` (public read-only; written only by scripts with the service role key). `data/*.json` is the seed, offline fallback and test fixture.
 - iNaturalist API v1: about 60 requests a minute, send a descriptive User-Agent, cache. Observations are **CC BY-NC**: always credit the observer, don't re-host photos, don't train AI on the data.
 - Claude API (`@anthropic-ai/sdk`), **server-side only**, key never `NEXT_PUBLIC_`. Default model `claude-opus-5-5` (low effort for summaries, medium for the chatbot). Haiku 5.5 is the cheaper option, only after re-running the spot check.
 - Summaries: a hand-run script (`npm run summaries`): fetch → match to sites (~100 m) → fact sheet → AI writes 1–2 sentences → number check → template fallback → `summaries.json`. All 8 are checked by hand before a demo.

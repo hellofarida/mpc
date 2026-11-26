@@ -1,7 +1,7 @@
 import { GROUPS, GROUP_LABELS, type Group } from "./groups";
 import { isGenericName } from "./facts";
 import { displayName, type SightingsFile } from "./sightings";
-import { SITES, getSite } from "./sites";
+import { SITES, type Site } from "./sites";
 import { checkText } from "./summary";
 
 /** Per-garden chatbot. Code validates, looks up and checks; the AI only picks a lookup and words the result. */
@@ -61,8 +61,8 @@ export type LookupResult = {
 };
 
 /** Pure function over the saved file. The garden comes from the page, never from the model. No observer names. */
-export function runLookup(siteId: string, lookup: Lookup, file: SightingsFile): LookupResult {
-  const site = getSite(siteId);
+export function runLookup(siteId: string, lookup: Lookup, file: SightingsFile, sites: Site[] = SITES): LookupResult {
+  const site = sites.find((x) => x.id === siteId);
   if (!site) throw new Error(`Unknown site ${siteId}`);
   const inSite = file.sightings.filter((s) => s.siteId === siteId);
   const mine = lookup.group ? inSite.filter((s) => s.groups.includes(lookup.group!)) : inSite;
@@ -139,14 +139,14 @@ export function declineFor(reason: DeclineReason) {
 }
 
 /** Cheap checks that save an AI call. The AI can still choose out_of_scope for what these miss. */
-export function obviousOutOfScope(question: string, siteId: string): DeclineReason | null {
+export function obviousOutOfScope(question: string, siteId: string, sites: Site[] = SITES): DeclineReason | null {
   const q = question.toLowerCase();
   if (/\b(identify|identification|what (species|bug|insect|bee|plant) is (this|that)|id (this|my))\b/.test(q)) return "photo_id";
   if (/\b(water|watering|prune|pruning|fertili[sz]er|soil|compost|weeds?)\b/.test(q) || /how (do|to|can) (i )?(grow|plant)/.test(q)) {
     return "plant_care";
   }
   if (/\bheartscapes\b|who (runs|owns|manages|funds)|\b(volunteer(ing)?|donat\w+)\b/.test(q)) return "organisation";
-  for (const s of SITES) {
+  for (const s of sites) {
     if (s.id === siteId) continue;
     const short = s.name.toLowerCase();
     if (q.includes(short)) return "other_garden";
@@ -234,15 +234,16 @@ export async function answerQuestion(
   ai: ChatAi | null,
   file: SightingsFile,
   log: (msg: string) => void = () => {},
+  sites: Site[] = SITES,
 ): Promise<ChatReply> {
-  const site = getSite(siteId);
+  const site = sites.find((x) => x.id === siteId);
   if (!site) return { kind: "invalid", message: "Unknown garden." };
 
   const v = validateQuestion(raw);
   if (!v.ok) return { kind: "invalid", message: v.message };
   const question = v.question;
 
-  const early = obviousOutOfScope(question, siteId);
+  const early = obviousOutOfScope(question, siteId, sites);
   if (early) return { kind: "declined", ...declineFor(early) };
 
   // AI call 1: pick one lookup (max 2 attempts), else the keyword rule
@@ -265,7 +266,7 @@ export async function answerQuestion(
   lookup ??= keywordLookup(question);
 
   // code runs the lookup
-  const result = runLookup(siteId, lookup, file);
+  const result = runLookup(siteId, lookup, file, sites);
   const src = sourceLine(result);
 
   // AI call 2: word the answer; code checks it (max 2 attempts), else the template

@@ -6,10 +6,13 @@ A mobile web guide to the Melbourne Pollinator Corridor's 8 main sites, built on
 1. `npm install`
 2. Copy `.env.example` to `.env.local` and fill in the Supabase URL, publishable key and (server-only) Anthropic API key.
 3. In Supabase: **SQL Editor → New query**, paste `supabase/migrations/001_checkins_and_events.sql`, **Run**.
-4. `npm run test:db` checks the database rules with the public key (all lines should say PASS).
-5. `npm run dev`
+4. Then run `supabase/migrations/002_content_tables.sql` the same way (gardens, sightings, summaries tables, public read-only), add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Supabase > Project settings > API; a secret, never `NEXT_PUBLIC_`, never in the browser) and run `npm run db:seed` once to load the saved files.
+5. `npm run test:db` checks the database rules with the public key (all lines should say PASS).
+6. `npm run dev`
 
 ## Data
+The app reads gardens, sightings and summaries from the database (public read-only tables). The files in `data/` are the seed and the offline fallback (used for a minute if the database can't be reached) and the fixtures for the tests. `npm run sightings` and `npm run summaries` write the files and, when `SUPABASE_SERVICE_ROLE_KEY` is set, the database too.
+
 - `data/sites.json`: the 8 main sites from Heartscapes' PDF (Nov 2025). Addresses marked `approx` need checking on the map.
 - `npm run sightings`: re-saves the last 12 months of MPC iNaturalist sightings within ~100 m of each address to `data/sightings.json`. Re-run before a demo.
   Observations are CC BY-NC: always credit the observer, link to the original, don't re-host photos, don't train AI on them.

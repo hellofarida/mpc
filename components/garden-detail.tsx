@@ -6,22 +6,21 @@ import { DirectionsButtons } from "@/components/directions-buttons";
 import { LeaveLink } from "@/components/leave-link";
 import { JoinButtons, LogSightingButton } from "@/components/link-buttons";
 import { GardenViewLogger } from "@/components/view-logger";
-import { getSite, siteCentre } from "@/lib/sites";
+import { getSightingsFile, getSite, getSummaries } from "@/lib/content";
+import { siteCentre } from "@/lib/sites";
 import { computeFacts } from "@/lib/facts";
 import { getSummary } from "@/lib/summary";
-import { displayName, type SightingsFile } from "@/lib/sightings";
-import sightingsData from "@/data/sightings.json";
-
-const data = sightingsData as SightingsFile;
+import { displayName } from "@/lib/sightings";
 const SHOWN = 12;
 
 /** Everything about one garden. Used by the full page (/sites/[id]) and the slide-out panel on the explorer. */
-export function GardenDetail({ id }: { id: string }) {
-  const site = getSite(id);
+export async function GardenDetail({ id }: { id: string }) {
+  const site = await getSite(id);
   if (!site) notFound();
 
   const centre = siteCentre(site);
-  const summary = getSummary(site, computeFacts(site.id, data));
+  const [data, summaries] = await Promise.all([getSightingsFile(), getSummaries()]);
+  const summary = getSummary(site, computeFacts(site.id, data), summaries[site.id]);
   const sightings = data.sightings
     .filter((s) => s.siteId === site.id)
     .sort((a, b) => b.observedOn.localeCompare(a.observedOn))

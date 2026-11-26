@@ -1,7 +1,6 @@
 import { GROUPS, GROUP_LABELS } from "./groups";
 import { isGenericName, type SiteFacts } from "./facts";
 import type { Site } from "./sites";
-import summariesData from "@/data/summaries.json";
 
 export type Summary = {
   text: string;
@@ -116,12 +115,10 @@ export function checkSummary(text: unknown, sheet: ReturnType<typeof factSheet>,
   });
 }
 
-const saved = (summariesData as SummariesFile).summaries;
-
-/** Saved summary, or a template computed at build time so the page never shows "coming soon". */
-export function getSummary(site: Site, facts: SiteFacts): Summary {
+/** The stored summary, or a template computed from the facts so the page never shows "coming soon". */
+export function getSummary(site: Site, facts: SiteFacts, stored?: Summary): Summary {
   return (
-    saved[site.id] ?? {
+    stored ?? {
       text: templateSummary(site, facts),
       source: "template",
       model: null,

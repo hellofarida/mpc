@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { GardenDetail } from "@/components/garden-detail";
-import { SITES } from "@/lib/sites";
+import { getSites } from "@/lib/content";
 
-export function generateStaticParams() {
-  return SITES.map((s) => ({ id: s.id }));
+export async function generateStaticParams() {
+  return (await getSites()).map((s) => ({ id: s.id }));
 }
 
 export default function GardenPage({ params }: { params: Promise<{ id: string }> }) {

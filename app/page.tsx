@@ -1,9 +1,10 @@
 import { Home } from "@/components/home";
 import { GardenDetail } from "@/components/garden-detail";
-import { SITES } from "@/lib/sites";
+import { getSites } from "@/lib/content";
 
-export default function Page() {
+export default async function Page() {
+  const sites = await getSites();
   // Each garden's page content is rendered on the server and slid out by the explorer when a site is chosen.
-  const details = Object.fromEntries(SITES.map((s) => [s.id, <GardenDetail key={s.id} id={s.id} />]));
-  return <Home details={details} />;
+  const details = Object.fromEntries(sites.map((s) => [s.id, <GardenDetail key={s.id} id={s.id} />]));
+  return <Home sites={sites} details={details} />;
 }

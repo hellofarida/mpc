@@ -6,7 +6,7 @@ import { buttonVariants, Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { logEvent } from "@/lib/events";
-import { SITES, distanceM, siteCentre, sortWestToEast, type Site } from "@/lib/sites";
+import { distanceM, siteCentre, sortWestToEast, type Site } from "@/lib/sites";
 import { MAX_STOPS, MIN_STOPS, buildAppleWalkUrl, buildGoogleWalkUrl, googleDirectionsUrl } from "@/lib/walk";
 
 const SiteMap = dynamic(() => import("@/components/site-map"), {
@@ -19,7 +19,7 @@ type Mode = "search" | "plan";
 type Layer = { key: number; id: string; open: boolean };
 const SLIDE_MS = 200;
 
-export function Home({ details }: { details: Record<string, ReactNode> }) {
+export function Home({ sites, details }: { sites: Site[]; details: Record<string, ReactNode> }) {
   const [here, setHere] = useState<Here | null>(null);
   const [locState, setLocState] = useState<"idle" | "asking" | "denied">("idle");
   const [mode, setMode] = useState<Mode>("search");
@@ -119,11 +119,11 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
   }
 
   const q = query.trim().toLowerCase();
-  const list = SITES.map((s) => ({ s, d: here ? distanceM(here, siteCentre(s)) : null }))
+  const list = sites.map((s) => ({ s, d: here ? distanceM(here, siteCentre(s)) : null }))
     .filter(({ s }) => mode === "plan" || !q || `${s.name} ${s.suburb}`.toLowerCase().includes(q))
     .sort((a, b) => (a.d !== null && b.d !== null ? a.d - b.d : a.s.number - b.s.number));
 
-  const stops = sortWestToEast(SITES.filter((s) => picked.includes(s.id)));
+  const stops = sortWestToEast(sites.filter((s) => picked.includes(s.id)));
   const ready = stops.length >= MIN_STOPS && stops.length <= MAX_STOPS;
 
   return (
@@ -195,6 +195,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
 
       <div className="relative order-1 h-[38%] shrink-0 md:order-2 md:h-auto md:flex-1">
         <SiteMap
+          sites={sites}
           here={here}
           picked={mode === "plan" ? picked : selected ? [selected] : []}
           panelOpen={!!selected}

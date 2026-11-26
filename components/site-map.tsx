@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useState } from "react";
 import { CircleMarker, MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
-import { SITES, getSite, siteCentre } from "@/lib/sites";
+import { siteCentre, type Site } from "@/lib/sites";
 
 const PANEL_PX = 448; // the site panel (28rem) covers this much of the map on desktop
 
@@ -35,9 +35,9 @@ type Here = { lat: number; lng: number } | null;
  * With cacheComponents the page is hidden (effects cleaned up) when you navigate away and shown again on Back.
  * Leaflet's map is destroyed by that cleanup and can't be reused, so mount a fresh one each time the page is visible.
  */
-type Props = { here: Here; picked: string[]; panelOpen: boolean; onSelect: (id: string) => void };
+type Props = { sites: Site[]; here: Here; picked: string[]; panelOpen: boolean; onSelect: (id: string) => void };
 
-export default function SiteMap({ here, picked, panelOpen, onSelect }: Props) {
+export default function SiteMap({ sites, here, picked, panelOpen, onSelect }: Props) {
   const [live, setLive] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setLive(true), 0);
@@ -47,20 +47,20 @@ export default function SiteMap({ here, picked, panelOpen, onSelect }: Props) {
     };
   }, []);
   if (!live) return <div className="h-full w-full bg-muted" />;
-  return <LeafletMap here={here} picked={picked} panelOpen={panelOpen} onSelect={onSelect} />;
+  return <LeafletMap sites={sites} here={here} picked={picked} panelOpen={panelOpen} onSelect={onSelect} />;
 }
 
 /**
  * Centres the highlighted site(s) in the part of the map you can actually see: on desktop the open panel covers
  * the left part of the map, so that part is left out. One site: centre it. Several (plan mode): fit them all.
  */
-function Focus({ ids, panelOpen }: { ids: string[]; panelOpen: boolean }) {
+function Focus({ sites, ids, panelOpen }: { sites: Site[]; ids: string[]; panelOpen: boolean }) {
   const map = useMap();
   const key = ids.join(",");
   useEffect(() => {
     const pts = key
       .split(",")
-      .map((id) => getSite(id))
+      .map((id) => sites.find((x) => x.id === id))
       .filter((x) => !!x)
       .map((x) => siteCentre(x!));
     if (pts.length === 0) return;
@@ -77,11 +77,12 @@ function Focus({ ids, panelOpen }: { ids: string[]; panelOpen: boolean }) {
         duration: 0.5,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-centre when the picked sites or panel change
   }, [key, panelOpen, map]);
   return null;
 }
 
-function LeafletMap({ here, picked, panelOpen, onSelect }: Props) {
+function LeafletMap({ sites, here, picked, panelOpen, onSelect }: Props) {
   return (
     <MapContainer
       center={[-37.8345, 144.9695]}
@@ -93,8 +94,8 @@ function LeafletMap({ here, picked, panelOpen, onSelect }: Props) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Focus ids={picked} panelOpen={panelOpen} />
-      {SITES.map((s) => {
+      <Focus sites={sites} ids={picked} panelOpen={panelOpen} />
+      {sites.map((s) => {
         const c = siteCentre(s);
         return (
           <Marker

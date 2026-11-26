@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SITES } from "@/lib/sites";
+import { getSites } from "@/lib/content";
 
 export const metadata: Metadata = { title: "About – MPC guide" };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const sites = await getSites();
   return (
     <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-6 text-sm leading-relaxed">
       <h1 className="text-2xl font-semibold">About</h1>
@@ -31,7 +32,7 @@ export default function AboutPage() {
       </p>
       <h2 className="text-base font-semibold">The 8 main sites</h2>
       <ul className="list-disc space-y-1 pl-5">
-        {SITES.map((s) => (
+        {sites.map((s) => (
           <li key={s.id}>
             <Link className="underline" href={`/sites/${s.id}`}>
               {s.name}

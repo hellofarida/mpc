@@ -11,6 +11,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SITES, distanceM } from "../lib/sites";
 import { groupsFor } from "../lib/groups";
+import { hasAdminKey, pushSightings } from "../lib/db-admin";
 import type { Sighting, SightingsFile } from "../lib/sightings";
 
 const API = "https://api.inaturalist.org/v1/observations";
@@ -133,6 +134,10 @@ async function main() {
   writeFileSync(out, JSON.stringify(file, null, 1) + "\n");
   const perSite = SITES.map((s) => `${s.name}: ${sightings.filter((x) => x.siteId === s.id).length}`);
   console.log(`\nSaved ${sightings.length} sightings to data/sightings.json\n${perSite.join("\n")}`);
+  if (hasAdminKey()) {
+    const r = await pushSightings(file);
+    console.log(`Database: ${r.saved} sightings saved, ${r.removed} removed.`);
+  } else console.log("Database not updated (no SUPABASE_SERVICE_ROLE_KEY). Run npm run db:seed after adding it.");
 }
 
 main().catch((err) => {
