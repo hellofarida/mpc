@@ -3,6 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { SITES, siteCentre } from "@/lib/sites";
 
@@ -16,7 +17,26 @@ function pinIcon(n: number) {
   });
 }
 
-export default function SiteMap({ here }: { here: { lat: number; lng: number } | null }) {
+type Here = { lat: number; lng: number } | null;
+
+/**
+ * With cacheComponents the page is hidden (effects cleaned up) when you navigate away and shown again on Back.
+ * Leaflet's map is destroyed by that cleanup and can't be reused, so mount a fresh one each time the page is visible.
+ */
+export default function SiteMap({ here }: { here: Here }) {
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setLive(true), 0);
+    return () => {
+      clearTimeout(t);
+      setLive(false);
+    };
+  }, []);
+  if (!live) return <div className="h-80 w-full rounded-xl bg-muted" />;
+  return <LeafletMap here={here} />;
+}
+
+function LeafletMap({ here }: { here: Here }) {
   return (
     <MapContainer
       center={[-37.8345, 144.9695]}
