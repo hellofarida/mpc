@@ -16,16 +16,22 @@ const SiteMap = dynamic(() => import("@/components/site-map"), {
 
 type Here = { lat: number; lng: number };
 type Mode = "search" | "plan";
+type Layer = { key: number; id: string; open: boolean };
+const SLIDE_MS = 200;
 
 export function Home({ details }: { details: Record<string, ReactNode> }) {
   const [here, setHere] = useState<Here | null>(null);
   const [locState, setLocState] = useState<"idle" | "asking" | "denied">("idle");
   const [mode, setMode] = useState<Mode>("search");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string | null>(null); // site open in the slide-out
-  const [shown, setShown] = useState<string | null>(null); // kept while the panel slides closed
+  // Slide-out panels, oldest first. Opening another site slides the open panel back under the list as the new one slides out.
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const top = layers[layers.length - 1];
+  const selected = top?.open ? top.id : null;
   const [picked, setPicked] = useState<string[]>([]);
   const opened = useRef(false);
+  const layerKey = useRef(0);
+  const cleanup = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelEntry = useRef(false); // true while the open panel has its own history entry
 
   useEffect(() => {
@@ -46,6 +52,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
       clearTimeout(t);
       window.removeEventListener("mpc:plan-walk", plan);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- closePanel only uses refs and state setters
   }, []);
 
   // The panel gets a history entry when it opens, so the Back button closes it instead of leaving the page.
@@ -53,7 +60,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && closePanel();
     const onPop = () => {
       panelEntry.current = false;
-      setSelected(null);
+      hideLayers();
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("popstate", onPop);
@@ -61,11 +68,19 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("popstate", onPop);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- closePanel only uses refs and state setters
   }, []);
 
   function closePanel() {
     if (panelEntry.current) history.back(); // popstate then closes it
-    else setSelected(null);
+    else hideLayers();
+  }
+
+  // Slide every panel back under the list, then drop them.
+  function hideLayers() {
+    if (cleanup.current) clearTimeout(cleanup.current);
+    setLayers((ls) => ls.map((l) => ({ ...l, open: false })));
+    cleanup.current = setTimeout(() => setLayers([]), SLIDE_MS + 50);
   }
 
   function locate() {
@@ -86,8 +101,12 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
       history.pushState(null, "", location.href);
       panelEntry.current = true;
     }
-    setShown(id);
-    setSelected(id);
+    if (selected === id) return;
+    if (cleanup.current) clearTimeout(cleanup.current);
+    const key = ++layerKey.current;
+    // The open panel slides back under the list while the new one slides out, both at once.
+    setLayers((ls) => [...ls.map((l) => ({ ...l, open: false })), { key, id, open: true }]);
+    cleanup.current = setTimeout(() => setLayers((ls) => ls.filter((l) => l.open)), SLIDE_MS + 50);
   }
 
   function toggle(id: string) {
@@ -109,7 +128,7 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
 
   return (
     <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:flex-row">
-      <aside className="order-2 flex min-h-0 flex-1 flex-col border-t md:order-1 md:w-96 md:flex-none md:border-r md:border-t-0">
+      <aside className="order-2 flex min-h-0 flex-1 flex-col border-t bg-background md:relative md:z-[1410] md:order-1 md:w-96 md:flex-none md:border-r md:border-t-0">
         <div className="space-y-2 border-b p-3">
           <div role="group" aria-label="Mode" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
             {(["search", "plan"] as const).map((m) => (
@@ -178,29 +197,35 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
         <SiteMap here={here} picked={mode === "plan" ? picked : selected ? [selected] : []} onSelect={onSiteChosen} />
       </div>
 
-      <section
-        aria-label="Site details"
-        aria-hidden={!selected}
-        inert={!selected}
-        className={`fixed bottom-0 left-0 right-0 top-14 z-[1400] flex flex-col bg-background shadow-xl transition-transform duration-200 md:left-96 md:right-auto md:w-[28rem] ${
-          selected ? "translate-x-0" : "invisible translate-x-full md:-translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between gap-2 border-b p-2">
-          <a
-            href={shown ? `/sites/${shown}` : "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Open in new tab
-          </a>
-          <Button variant="outline" size="sm" onClick={closePanel} aria-label="Close site details">
-            Close
-          </Button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">{selected && details[selected]}</div>
-      </section>
+      {layers.map((l, i) => (
+        <section
+          key={l.key}
+          aria-label="Site details"
+          aria-hidden={!l.open || i !== layers.length - 1}
+          inert={!l.open || i !== layers.length - 1}
+          style={{ zIndex: 1400 + i }}
+          className={`fixed bottom-0 left-0 right-0 top-14 flex flex-col bg-background shadow-xl transition-[translate,visibility] duration-200 md:left-96 md:right-auto md:w-[28rem] ${
+            l.open
+              ? "translate-x-0 animate-in duration-200 slide-in-from-right-full md:slide-in-from-left-full"
+              : "invisible translate-x-full md:-translate-x-full"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2 border-b p-2">
+            <a
+              href={`/sites/${l.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Open in new tab
+            </a>
+            <Button variant="outline" size="sm" onClick={closePanel} aria-label="Close site details">
+              Close
+            </Button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">{details[l.id]}</div>
+        </section>
+      ))}
     </div>
   );
 }
