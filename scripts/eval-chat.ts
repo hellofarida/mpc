@@ -25,6 +25,7 @@ const CASES: Case[] = [
   { site: BEE, q: "How many beetle sightings are there?", expect: [rows(BEE, "beetles").length] },
   { site: STM, q: "How many sightings so far?", expect: [rows(STM).length] },
   { site: STM, q: "How many different species have been seen?", expect: [new Set(rows(STM).map((s) => s.scientificName)).size] },
+  { site: STM, q: "How many people have recorded sightings here?", expect: [new Set(rows(STM).map((s) => s.observer)).size] },
   { site: STM, q: "How many butterfly and moth sightings are there?", expect: [rows(STM, "butterflies_moths").length] },
   { site: STM, q: "How many hoverfly sightings are there?", expect: [rows(STM, "hoverflies").length] },
   { site: PMP, q: "How many sightings have been recorded?", expect: [rows(PMP).length] },
