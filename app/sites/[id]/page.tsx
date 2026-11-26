@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Chatbot } from "@/components/chatbot";
 import { CheckInCard } from "@/components/checkin-card";
 import { DirectionsButtons } from "@/components/directions-buttons";
 import { LeaveLink } from "@/components/leave-link";
@@ -140,9 +141,8 @@ async function Garden({ params }: { params: Promise<{ id: string }> }) {
         <CardHeader>
           <CardTitle>Ask about this garden</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {/* Section 4: chatbot goes here */}
-          <div data-slot="chatbot">Coming soon.</div>
+        <CardContent>
+          <Chatbot siteId={site.id} />
         </CardContent>
       </Card>
 

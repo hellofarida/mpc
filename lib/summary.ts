@@ -62,23 +62,30 @@ const GENERIC_WORDS = new Set([
   "butterflies", "moths", "flies", "spiders", "unknown",
 ]);
 
+export type TextLimits = { maxChars: number; maxSentences: number };
+
 /**
  * Code checks the AI's words. Returns null if fine, or the reason it failed.
- * - every number (digits or words) must appear in the fact sheet
- * - no species from the dataset that this fact sheet doesn't list
- * - 1–2 sentences, max length, no advice, no claims about Heartscapes
+ * - every number (digits or words) must appear in `data` (the fact sheet or lookup result)
+ * - no species from the dataset that `listed` doesn't name
+ * - few sentences, max length, no advice, no claims about Heartscapes, no links
  */
-export function checkSummary(text: unknown, sheet: ReturnType<typeof factSheet>, allSpeciesNames: string[]): string | null {
+export function checkText(
+  text: unknown,
+  data: unknown,
+  listed: string[],
+  allSpeciesNames: string[],
+  limits: TextLimits,
+): string | null {
   if (typeof text !== "string") return "text is not a string";
   const t = text.trim();
   if (t.length === 0) return "empty";
-  if (t.length > MAX_SUMMARY_CHARS) return `too long (${t.length} chars)`;
+  if (t.length > limits.maxChars) return `too long (${t.length} chars)`;
 
   const sentences = t.split(/(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
-  if (sentences.length > 2) return `more than 2 sentences (${sentences.length})`;
+  if (sentences.length > limits.maxSentences) return `more than ${limits.maxSentences} sentences (${sentences.length})`;
 
-  const sheetText = JSON.stringify(sheet);
-  const allowed = new Set((sheetText.match(/\d+(?:\.\d+)?/g) ?? []).map(Number));
+  const allowed = new Set((JSON.stringify(data).match(/\d+(?:\.\d+)?/g) ?? []).map(Number));
   for (const m of t.match(/\d+(?:[.,]\d+)*/g) ?? []) {
     if (!allowed.has(Number(m.replace(/,/g, "")))) return `number not in fact sheet: ${m}`;
   }
@@ -87,18 +94,26 @@ export function checkSummary(text: unknown, sheet: ReturnType<typeof factSheet>,
   }
 
   if (/heartscapes/i.test(t)) return "mentions Heartscapes";
+  if (/https?:|www\./i.test(t)) return "contains a link";
   if (/\b(should|must|recommend\w*|you can|you could|visit|best time)\b/i.test(t)) return "gives advice";
 
   const lower = t.toLowerCase();
-  const listed = sheet.mostRecordedSpecies.map((s) => s.name.toLowerCase());
+  const listedLower = listed.map((n) => n.toLowerCase());
   for (const name of allSpeciesNames) {
     const n = name.toLowerCase();
-    if (n.length < 4 || isGenericName(n) || GENERIC_WORDS.has(n) || listed.includes(n)) continue;
+    if (n.length < 4 || isGenericName(n) || GENERIC_WORDS.has(n) || listedLower.includes(n)) continue;
     if (new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(lower)) {
       return `species not in fact sheet: ${name}`;
     }
   }
   return null;
+}
+
+export function checkSummary(text: unknown, sheet: ReturnType<typeof factSheet>, allSpeciesNames: string[]): string | null {
+  return checkText(text, sheet, sheet.mostRecordedSpecies.map((s) => s.name), allSpeciesNames, {
+    maxChars: MAX_SUMMARY_CHARS,
+    maxSentences: 2,
+  });
 }
 
 const saved = (summariesData as SummariesFile).summaries;
