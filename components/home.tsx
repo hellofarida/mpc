@@ -194,7 +194,12 @@ export function Home({ details }: { details: Record<string, ReactNode> }) {
       </aside>
 
       <div className="relative order-1 h-[38%] shrink-0 md:order-2 md:h-auto md:flex-1">
-        <SiteMap here={here} picked={mode === "plan" ? picked : selected ? [selected] : []} onSelect={onSiteChosen} />
+        <SiteMap
+          here={here}
+          picked={mode === "plan" ? picked : selected ? [selected] : []}
+          panelOpen={!!selected}
+          onSelect={onSiteChosen}
+        />
       </div>
 
       {layers.map((l, i) => (
