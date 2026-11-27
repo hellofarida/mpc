@@ -102,8 +102,9 @@ export default function PrivacyPage() {
       <section className="space-y-1">
         <h2 className="text-base font-semibold">Cookies and third parties</h2>
         <p>
-          No cookies and no third-party scripts, ads or tracking. We count visits ourselves, with the anonymous steps above. The Join and Volunteer buttons open Heartscapes with a tag in the link (the button and garden you came from, and &quot;mpc-guide&quot;), so Heartscapes can see how many people came from this guide. The tag says nothing about you. The map tiles come from OpenStreetMap, so that
-          service sees your device&apos;s IP address when the map loads.
+          No cookies and no third-party scripts, ads or tracking. We count visits ourselves, with the anonymous steps above. The Join and Volunteer buttons open Heartscapes with a tag in the link (the button and garden you came from, and &quot;mpc-guide&quot;), so Heartscapes can see how many people came from this guide. The tag says nothing about you. The map pictures come from CARTO (with OpenStreetMap
+          data), or from OpenStreetMap itself as a backup, so those services see your device&apos;s IP address when the map
+          loads (CARTO shortens it and keeps its logs for 30 days).
         </p>
       </section>
 

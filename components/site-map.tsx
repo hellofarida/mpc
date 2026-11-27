@@ -3,9 +3,10 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { pinIcon } from "@/components/pin-icon";
-import { useEffect, useRef, useState } from "react";
-import { logEvent } from "@/lib/events";
-import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { useEffect, useState } from "react";
+import { CircleMarker, MapContainer, Marker, Polyline, Tooltip, useMap } from "react-leaflet";
+import { BaseTiles } from "@/components/base-tiles";
+import { MAP_LIMITS } from "@/lib/map-tiles";
 import type { RouteFile, RouteMode, RouteVariant } from "@/lib/route";
 import { siteCentre, type Site } from "@/lib/sites";
 
@@ -59,19 +60,19 @@ function Focus({ sites, ids, panelOpen }: { sites: Site[]; ids: string[]; panelO
 }
 
 function LeafletMap({ sites, route, routeMode, chosen, picked, panelOpen, onSelect }: Props) {
-  const tileErrors = useRef(0);
   return (
     <MapContainer
-      bounds={L.latLngBounds(route.variants.walking.coords)}
-      boundsOptions={{ padding: [24, 24] }}
+      bounds={L.latLngBounds(sites.map((s) => { const c = siteCentre(s); return [c.lat, c.lng] as [number, number]; }))}
+      boundsOptions={{ padding: [40, 40] }}
+      zoomSnap={0.25}
+      minZoom={MAP_LIMITS.minZoom}
+      maxZoom={MAP_LIMITS.maxZoom}
+      maxBounds={MAP_LIMITS.maxBounds}
+      maxBoundsViscosity={1}
       scrollWheelZoom={false}
       className="h-full w-full"
     >
-      <TileLayer
-        eventHandlers={{ tileerror: () => ++tileErrors.current === 3 && logEvent("error", { detail: "tiles-failed" }) }}
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <BaseTiles />
       {routeMode !== "off" && (
         <Polyline
           positions={(chosen ?? route.variants[routeMode]).coords}

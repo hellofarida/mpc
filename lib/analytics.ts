@@ -225,3 +225,17 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
     kpi: { gardenOpen: garden.length, logTap: garden.filter((v) => has(v, "log_tap")).length, joinTap: garden.filter((v) => has(v, "join_tap")).length, gardenVisits: garden.length },
   };
 }
+
+/** CARTO's free allowance: 5 million tile requests a calendar month (UTC). */
+export const TILE_LIMIT = 5_000_000;
+const TILES_PER_MAP_LOAD = 30; // the main map: about 12 tiles to start, more as people pan and zoom
+const TILES_PER_SITE_MAP = 8; // the small map in a site's panel
+
+/** A rough count of this month's tile requests from our own page views. CARTO's dashboard has the exact number. */
+export function estimateTiles(rawEvents: EventRow[]): { mapLoads: number; siteMaps: number; tiles: number; share: number } {
+  const events = rawEvents.filter((e) => e.device_id !== TEST_DEVICE);
+  const mapLoads = events.filter(isHome).length;
+  const siteMaps = events.filter((e) => e.event === "garden_view").length;
+  const tiles = mapLoads * TILES_PER_MAP_LOAD + siteMaps * TILES_PER_SITE_MAP;
+  return { mapLoads, siteMaps, tiles, share: tiles / TILE_LIMIT };
+}

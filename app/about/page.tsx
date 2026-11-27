@@ -48,6 +48,10 @@ export default async function AboutPage() {
           <a className="underline" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
             OpenStreetMap contributors
           </a>
+          , {" "}
+          <a className="underline" href="https://carto.com/attribution/" target="_blank" rel="noopener noreferrer">
+            © CARTO
+          </a>
           . Sightings from the{" "}
           <a
             className="underline"

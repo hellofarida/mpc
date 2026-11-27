@@ -12,7 +12,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { hasAdminKey, readCheckinsSince, readEventsSince, readSites } from "../lib/db-admin";
-import { computeAnalytics, type Analytics } from "../lib/analytics";
+import { computeAnalytics, estimateTiles, TILE_LIMIT, type Analytics } from "../lib/analytics";
 
 const args = process.argv.slice(2);
 const arg = (f: string) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
@@ -49,7 +49,16 @@ function liveCard(live: Live | null) {
   return `<div class="card kpi"><p class="muted">People online right now</p><p class="big"><span id="live-dot" style="color:var(--good)">●</span> <span id="live-count">…</span></p><p class="muted" id="live-status">Connecting…</p><p class="muted">Visitors with the guide open and visible. A live connection, not a count from the last few minutes.</p></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${live.version}/dist/umd/supabase.js"></script><script>(function(){var c=document.getElementById("live-count"),s=document.getElementById("live-status");if(!window.supabase){c.textContent="n/a";s.textContent="Live count unavailable: could not load the live library (offline?).";return}var sb=window.supabase.createClient(${js(live.url)},${js(live.key)},{auth:{persistSession:false}});var ch=sb.channel(${js(live.channel)},{config:{presence:{key:"observer-"+Math.random().toString(36).slice(2)}}});function show(){c.textContent=Object.keys(ch.presenceState()).length;s.textContent="Live, updated "+new Date().toLocaleTimeString("en-AU",{timeZone:"Australia/Melbourne"})}ch.on("presence",{event:"sync"},show).subscribe(function(st){if(st==="SUBSCRIBED"){s.textContent="Connected";show()}else if(st==="CHANNEL_ERROR"||st==="TIMED_OUT"||st==="CLOSED"){c.textContent="n/a";s.textContent="Live count unavailable ("+st+")"}})})();</script>`;
 }
 
-function render(a: Analytics, watching: boolean, live: Live | null) {
+type Tiles = ReturnType<typeof estimateTiles>;
+
+function tilesCard(t: Tiles) {
+  const pctUsed = Math.round(t.share * 100);
+  const level = t.share >= 0.95 ? "low" : t.share >= 0.8 ? "low" : t.share >= 0.5 ? "low" : "good";
+  const word = t.share >= 0.95 ? "act now: switch to OpenStreetMap (NEXT_PUBLIC_MAP_PROVIDER=osm)" : t.share >= 0.8 ? "over 80%: check CARTO's dashboard today" : t.share >= 0.5 ? "over half: check CARTO's dashboard" : "well within the limit";
+  return `<div class="card kpi"><p class="muted">Map tiles this month (estimate)</p><p class="big">${t.tiles.toLocaleString("en-AU")}</p><p class="muted">${pctUsed}% of CARTO's free ${TILE_LIMIT.toLocaleString("en-AU")} a month</p><p class="${level}">${word}</p><p class="muted">${t.mapLoads} map loads and ${t.siteMaps} site maps, at about 30 and 8 tiles each. Only a guide: CARTO's dashboard shows the exact count.</p></div>`;
+}
+
+function render(a: Analytics, watching: boolean, live: Live | null, tiles: Tiles) {
   const f = a.funnel;
   const section = (h: string, body: string, hint = "") => `<section><h2>${esc(h)}</h2>${hint ? `<p class="muted">${hint}</p>` : ""}${body}</section>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MPC analytics</title>${watching ? '<meta http-equiv="refresh" content="30">' : ""}<style>
@@ -67,6 +76,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:6px 8px;b
 <p class="muted">${esc(a.since.slice(0, 10))} to ${esc(a.until.slice(0, 10))} · ${a.visits} visits · ${a.events} steps · ${a.checkins} check-ins · anonymous, test device left out · generated ${esc(new Date().toLocaleString("en-AU", { timeZone: "Australia/Melbourne" }))} (Melbourne time)</p>
 
 ${section("Right now", `<div class="grid">${liveCard(live)}<div class="card kpi"><p class="muted">Visitors who tapped in the last 5 minutes</p><p class="big">${a.activeNow.last5}</p><p class="muted">${a.activeNow.last30} in the last 30 minutes</p></div></div>`, `Counted from taps and page opens only, so someone reading quietly drops out after a few minutes. As of ${esc(new Date(a.until).toLocaleTimeString("en-AU", { timeZone: "Australia/Melbourne" }))} Melbourne time${watching ? " · refreshes every 30 s while the report command is running" : " · run with --watch to keep it live"}.`)}
+
+${section("Map tile budget", `<div class="grid">${tilesCard(tiles)}</div>`, "CARTO's free tier allows 5 million tile requests a month; if the allowance runs out the map switches to OpenStreetMap by itself.")}
 
 ${section("Unique pageviews", `<div class="grid"><div class="card kpi"><p class="muted">Unique pageviews</p><p class="big">${a.pageviews.uniqueTotal}</p><p class="muted">${a.pageviews.viewsTotal} views in all</p></div></div>${a.pageviews.pages.length ? `<table><tr><th>Page</th><th>Unique pageviews</th><th>Views</th></tr>${a.pageviews.pages.map((p) => `<tr><td>${esc(p.label)}</td><td>${p.unique}</td><td>${p.views}</td></tr>`).join("")}</table>` : ""}`, "Each page counted once per visit. A garden's panel counts as that garden's page. Pages seen before this was tracked are missing.")}
 
@@ -108,7 +119,9 @@ ${section("Check-ins", `<div class="grid"><div class="card"><p class="muted">How
 async function build(watching: boolean, live: Live | null): Promise<string> {
   const [events, checkins, sites] = await Promise.all([readEventsSince(since.toISOString()), readCheckinsSince(since.toISOString()), readSites()]);
   const a = computeAnalytics(events, checkins, sites.map((s) => ({ id: s.id, name: s.name })), since);
-  const html = render(a, watching, live);
+  const now = new Date();
+  const monthEvents = await readEventsSince(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString());
+  const html = render(a, watching, live, estimateTiles(monthEvents));
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, html);
   console.log(`${new Date().toLocaleTimeString()} wrote ${out}: ${a.activeNow.last5} tapped in the last 5 min, ${a.visits} visits, ${a.events} steps, ${a.checkins} check-ins since ${since.toISOString().slice(0, 10)}.`);

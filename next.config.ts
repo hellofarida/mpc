@@ -10,7 +10,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'", // Leaflet and Next set inline styles
-  "img-src 'self' data: blob: https://tile.openstreetmap.org https://inaturalist-open-data.s3.amazonaws.com https://static.inaturalist.org",
+  "img-src 'self' data: blob: https://tile.openstreetmap.org https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://inaturalist-open-data.s3.amazonaws.com https://static.inaturalist.org",
   "font-src 'self'",
   `connect-src 'self' ${supabase} ${supabaseWs}${isDev ? " ws://localhost:* http://localhost:*" : ""}`.trim(),
   "object-src 'none'",
