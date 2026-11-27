@@ -22,7 +22,7 @@ export function SiteTabs({ tabs }: { tabs: SiteTab[] }) {
 
   return (
     <div>
-      <div role="tablist" aria-label="About this site" className="sticky top-0 z-10 flex border-b bg-background">
+      <div role="tablist" aria-label="About this site" className="sticky top-0 z-10 mt-5 flex border-b bg-background">
         {tabs.map((t, i) => (
           <button
             key={t.id}
@@ -38,7 +38,7 @@ export function SiteTabs({ tabs }: { tabs: SiteTab[] }) {
             tabIndex={active === t.id ? 0 : -1}
             onClick={() => setActive(t.id)}
             onKeyDown={(e) => onKey(e, i)}
-            className={`flex-1 border-b-2 px-2 py-3 text-sm font-medium ${
+            className={`flex-1 border-b-2 px-2 py-4 text-sm font-medium ${
               active === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -47,7 +47,7 @@ export function SiteTabs({ tabs }: { tabs: SiteTab[] }) {
         ))}
       </div>
       {tabs.map((t) => (
-        <div key={t.id} id={`panel-${t.id}`} role="tabpanel" aria-labelledby={`tab-${t.id}`} hidden={active !== t.id} className="space-y-4 p-4">
+        <div key={t.id} id={`panel-${t.id}`} role="tabpanel" aria-labelledby={`tab-${t.id}`} hidden={active !== t.id} className="space-y-8 p-5">
           {t.content}
         </div>
       ))}

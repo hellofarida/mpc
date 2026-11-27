@@ -9,7 +9,7 @@ export function SiteStats({ facts, months }: { facts: SiteFacts; months: MonthCo
   const maxGroup = Math.max(1, ...GROUPS.map((g) => facts.groupCounts[g]));
   const maxMonth = Math.max(1, ...months.map((m) => m.count));
   const tile = (label: string, value: string | number) => (
-    <div className="rounded-lg bg-muted p-3">
+    <div className="rounded-lg bg-muted p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-xl font-semibold">{value}</p>
     </div>
@@ -19,8 +19,8 @@ export function SiteStats({ facts, months }: { facts: SiteFacts; months: MonthCo
       <CardHeader>
         <CardTitle>Sightings at a glance</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
-        <div className="grid grid-cols-3 gap-2">
+      <CardContent className="space-y-6 text-sm">
+        <div className="grid grid-cols-3 gap-3">
           {tile("Sightings", facts.totalSightings)}
           {tile("Species", facts.distinctSpecies)}
           {tile("Observers", facts.observers)}

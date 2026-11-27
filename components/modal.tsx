@@ -23,7 +23,7 @@ export function Modal({ label, onClose, children }: { label: string; onClose: ()
       className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-background p-4 shadow-lg sm:rounded-2xl">{children}</div>
+      <div className="max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-background p-5 shadow-lg sm:rounded-2xl">{children}</div>
     </div>,
     document.body,
   );

@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { PlanView } from "@/components/plan-modal";
 import { Button } from "@/components/ui/button";
 import { SiteThumb } from "@/components/site-thumb";
-import { Checkbox } from "@/components/ui/checkbox";
 import { logEvent } from "@/lib/events";
 import { chosenPath, km, minutes, type RouteFile, type RouteMode } from "@/lib/route";
 import type { SiteImage } from "@/lib/site-images";
@@ -175,8 +174,8 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
 
   return (
     <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:flex-row">
-      <aside className="order-2 flex min-h-0 flex-1 flex-col border-t bg-background md:relative md:z-[1410] md:order-1 md:w-96 md:flex-none md:border-r md:border-t-0">
-        <div className="space-y-2 border-b p-3">
+      <aside className="order-2 flex min-h-0 flex-1 flex-col border-t bg-background md:relative md:z-[1410] md:order-1 md:w-100 md:flex-none md:border-r md:border-t-0">
+        <div className="space-y-3 border-b p-4">
           <div role="group" aria-label="Mode" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
             {(["search", "plan"] as const).map((m) => (
               <button
@@ -185,7 +184,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
                 aria-pressed={mode === m}
                 data-track="mode-toggle"
                 onClick={() => changeMode(m)}
-                className={`rounded-md py-1.5 font-medium capitalize ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                className={`rounded-md py-2 font-medium capitalize ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
               >
                 {m}
               </button>
@@ -221,12 +220,12 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
         </div>
 
         {mode === "plan" && planView && ready ? (
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <PlanView stops={stops} route={route} images={images} onOpened={() => (walkOpened.current = true)} onViewSite={(id) => open(id)} />
           </div>
         ) : (
           <>
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pt-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 pt-4 text-xs text-muted-foreground">
           <span>
             {plural(mainSites.reduce((n, s) => n + s.gardens, 0), "garden")} across the {mainSites.length} main sites
           </span>
@@ -241,7 +240,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
             </span>
           )}
         </div>
-        <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+        <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
           {list.map((s) => (
             <SiteCard
               key={s.id}
@@ -255,14 +254,14 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
             />
           ))}
           {sites.some((s) => s.note === GENERAL_NOTE) && (
-            <li role="note" className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+            <li role="note" className="rounded-xl bg-muted p-4 text-xs text-muted-foreground">
               {GENERAL_NOTE}
             </li>
           )}
         </ul>
 
         {mode === "plan" && (
-          <div className="flex items-center justify-between gap-3 border-t bg-background p-3 text-sm">
+          <div className="flex items-center justify-between gap-3 border-t bg-background p-4 text-sm">
             <span role="status">{picked.length} selected</span>
             <Button data-track="view-plan" disabled={!ready} onClick={() => setPlanView(true)}>
               View plan
@@ -317,7 +316,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
           aria-hidden={!l.open || i !== layers.length - 1}
           inert={!l.open || i !== layers.length - 1}
           style={{ zIndex: 1400 + i }}
-          className={`fixed bottom-0 left-0 right-0 top-14 flex flex-col bg-background shadow-xl transition-[translate,visibility] duration-200 md:left-96 md:right-auto md:w-[28rem] ${
+          className={`fixed bottom-0 left-0 right-0 top-14 flex flex-col bg-background shadow-xl transition-[translate,visibility] duration-200 md:left-100 md:right-auto md:w-[28rem] ${
             l.open
               ? "translate-x-0 animate-in duration-200 slide-in-from-right-full md:slide-in-from-left-full"
               : "invisible translate-x-full md:-translate-x-full"
@@ -362,29 +361,59 @@ function SiteCard({
 }) {
   const body = (
     <>
-      <SiteThumb image={image} className="size-auto min-h-24 w-24 self-stretch rounded-none" />
-      <span className="min-w-0 flex-1 p-3">
-        <span className="block font-medium">{site.name}</span>
-        <span className="mt-1 block text-xs text-muted-foreground">{site.suburb}</span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">{site.gardensNote ?? plural(site.gardens, "garden")}</span>
+      <span className="flex min-w-0 flex-1 flex-col p-4">
+        <span className="block text-[1.1rem] font-medium leading-snug">{site.name}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{site.suburb}</span>
+        <span className="mt-auto block pt-3 text-xs text-muted-foreground">{site.gardensNote ?? plural(site.gardens, "garden")}</span>
       </span>
+      <SiteThumb image={image} className="size-auto min-h-28 w-36 self-stretch rounded-[calc(var(--radius-xl)-1px)]" />
     </>
   );
-  const card = `flex w-full items-stretch overflow-hidden rounded-xl border text-left text-sm ${
+  const card = `group relative flex w-full items-stretch overflow-hidden rounded-xl border text-left text-sm ${
     active || (mode === "plan" && checked) ? "border-primary bg-muted" : "hover:bg-muted/50"
   }`;
   return (
     <li className={disabled ? "opacity-50" : ""}>
       {mode === "plan" ? (
-        <label data-track="plan-pick" className={`${card} cursor-pointer`}>
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={checked}
+          disabled={disabled}
+          data-track="plan-pick"
+          onClick={onChoose}
+          className={`${card} cursor-pointer`}
+        >
           {body}
-          <span className="flex items-center pr-3">
-            <Checkbox checked={checked} disabled={disabled} onCheckedChange={onChoose} />
+          <span
+            aria-hidden="true"
+            className={`absolute bottom-3 right-3 flex size-7 items-center justify-center rounded-full border-2 shadow-md transition-colors ${
+              checked ? "border-primary bg-primary text-primary-foreground" : "border-white bg-black/30 text-transparent"
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
           </span>
-        </label>
+        </button>
       ) : (
         <button type="button" data-track="site-card" onClick={onChoose} className={card}>
           {body}
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="absolute bottom-3 right-3 text-white opacity-0 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)] transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          >
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
         </button>
       )}
     </li>

@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Get involved – MPC guide" };
 
 export default function GetInvolvedPage() {
   return (
-    <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-6 text-sm leading-relaxed">
+    <main className="mx-auto w-full max-w-xl space-y-6 px-5 py-8 text-sm leading-relaxed">
       <h1 className="text-2xl font-semibold">Get involved</h1>
       <p>Saw something in one of the gardens? Add it to the corridor&apos;s record on iNaturalist.</p>
       <LogSightingButton />

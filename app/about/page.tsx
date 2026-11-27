@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "About – MPC guide" };
 export default async function AboutPage() {
   const sites = await getSites();
   return (
-    <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-6 text-sm leading-relaxed">
+    <main className="mx-auto w-full max-w-xl space-y-6 px-5 py-8 text-sm leading-relaxed">
       <h1 className="text-2xl font-semibold">About</h1>
       <p>
         The Melbourne Pollinator Corridor is a string of pollinator gardens in inner Melbourne, created by

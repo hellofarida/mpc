@@ -131,7 +131,7 @@ export function PlanView({
   const verb = mode === "walking" ? "on foot" : "by bike";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div role="group" aria-label="How you'll travel" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
         {([["walking", "Walk"], ["cycling", "Cycle"]] as const).map(([m, label]) => (
           <button
@@ -146,7 +146,7 @@ export function PlanView({
         ))}
       </div>
 
-      <ol className="space-y-1">
+      <ol className="space-y-2">
         {stops.map((s, i) => (
           <li key={s.id}>
             <div className="flex items-center gap-3">
@@ -171,7 +171,7 @@ export function PlanView({
               </span>
             </div>
             {i < legs.length && (
-              <p className="ml-3 border-l-2 border-dashed py-2 pl-6 text-xs text-muted-foreground">
+              <p className="ml-3 border-l-2 border-dashed py-3 pl-6 text-xs text-muted-foreground">
                 {legs[i] ? `${km(legs[i]!.distanceM)}, ${minutes(legs[i]!.durationS)} ${verb}` : "Distance not available"}
               </p>
             )}
@@ -180,7 +180,7 @@ export function PlanView({
       </ol>
 
       {known.length === legs.length && (
-        <p className="rounded-lg bg-muted p-3 text-sm">
+        <p className="rounded-lg bg-muted p-4 text-sm">
           <strong>Total:</strong> {km(total.d)}, about {minutes(total.s)} {verb}. Indicative, from OpenStreetMap paths.
         </p>
       )}

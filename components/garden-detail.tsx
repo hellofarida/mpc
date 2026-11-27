@@ -52,14 +52,14 @@ export async function GardenDetail({ id }: { id: string }) {
     <div>
       <GardenViewLogger siteId={site.id} />
       <SiteHero image={image} />
-      <header className="space-y-1 px-4 pt-4">
+      <header className="space-y-1.5 px-5 pt-6">
         <h1 className="text-2xl font-semibold">{site.name}</h1>
         <p className="text-muted-foreground">
           {site.suburb} · {site.gardensNote ?? `${site.gardens} gardens`} · {site.areaM2} m²
         </p>
       </header>
 
-      <div className="flex gap-2 px-4 pt-3">
+      <div className="flex gap-3 px-5 pt-5">
         <CheckInButton siteId={site.id} sites={allSites.map((s) => ({ id: s.id, name: s.name }))} />
         <LogSightingButton siteId={site.id} variant="outline" className="flex-1">
           Log sighting
@@ -74,7 +74,7 @@ export async function GardenDetail({ id }: { id: string }) {
             content: (
               <>
                 {site.note && site.note !== GENERAL_NOTE && (
-                  <p className="rounded-lg bg-muted p-3 text-sm" role="note">
+                  <p className="rounded-lg bg-muted p-4 text-sm" role="note">
                     {site.note}
                   </p>
                 )}

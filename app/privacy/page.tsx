@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Privacy – MPC guide" };
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto w-full max-w-xl space-y-5 px-4 py-6 text-sm leading-relaxed">
+    <main className="mx-auto w-full max-w-xl space-y-7 px-5 py-8 text-sm leading-relaxed">
       <Link className="text-xs underline" href="/">
         ← Back to the map
       </Link>
