@@ -180,7 +180,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
     <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:h-dvh">
       <aside className="order-2 flex min-h-0 flex-1 flex-col border-t bg-background md:absolute md:bottom-3 md:left-3 md:top-3 md:z-[1410] md:w-100 md:flex-none md:overflow-hidden md:rounded-2xl md:border-0 md:shadow-xl">
         <div className={`p-4 ${mode === "search" ? "border-b" : "pb-3"}`}>
-          <div role="group" aria-label="Mode" className="relative grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
+          <div role="group" aria-label="Mode" className="relative grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 font-heading text-base tracking-[-0.01em]">
             {/* The white pill slides across to the selected side. */}
             <span
               aria-hidden="true"
@@ -195,7 +195,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
                 aria-pressed={mode === m}
                 data-track="mode-toggle"
                 onClick={() => changeMode(m)}
-                className={`relative z-10 rounded-md py-2 font-medium capitalize transition-colors duration-200 ${mode === m ? "" : "text-muted-foreground"}`}
+                className={`relative z-10 rounded-md py-2 font-bold capitalize transition-colors duration-200 ${mode === m ? "" : "text-muted-foreground"}`}
               >
                 {m}
               </button>
@@ -395,7 +395,7 @@ function SiteCard({
   const body = (
     <>
       <span className="flex min-w-0 flex-1 flex-col p-4">
-        <span className="block text-[1.1rem] font-medium leading-snug">{site.name}</span>
+        <span className="block font-heading text-[1.1rem] font-medium leading-snug tracking-[-0.01em]">{site.name}</span>
         <span className="mt-0.5 block text-xs text-muted-foreground">{site.suburb}</span>
         <span className="mt-auto block pt-3 text-xs text-muted-foreground">{site.gardensNote ?? plural(site.gardens, "garden")}</span>
       </span>
@@ -403,7 +403,7 @@ function SiteCard({
     </>
   );
   const card = `group relative flex w-full items-stretch overflow-hidden rounded-xl border text-left text-sm ${
-    active || (mode === "plan" && checked) ? "border-primary bg-muted" : "hover:bg-muted/50"
+    active || (mode === "plan" && checked) ? "bg-muted" : "hover:bg-muted/50"
   }`;
   return (
     <li className={disabled ? "opacity-50" : ""}>

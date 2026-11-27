@@ -21,7 +21,7 @@ export function TopNav() {
     >
       <nav aria-label="Main" className="flex h-full w-full items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <span className="whitespace-nowrap text-sm font-semibold">Melbourne Pollinator Corridor</span>
+          <span className="whitespace-nowrap font-heading text-base font-bold tracking-[-0.01em]">Melbourne Pollinator Corridor</span>
         </Link>
         <ul className="hidden items-center gap-6 text-sm md:flex">
           {LINKS.map((l) => (
