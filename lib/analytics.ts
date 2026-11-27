@@ -43,6 +43,19 @@ export type Analytics = {
   perDay: { day: string; visits: number }[];
   perHour: { hour: number; visits: number }[];
   friction: { label: string; visits: number; note: string }[];
+  frustration: {
+    /** Each signal: how many times, in how many visits (share of all visits). */
+    signals: { label: string; hint: string; times: number; visits: number }[];
+    /** Top "what" behind rage clicks, errors, slow things, cancelled leaving dialogs and declined questions. */
+    byDetail: { signal: string; detail: string; times: number }[];
+    /** Per garden: panel bounces, errors and the like that happened on that garden. */
+    perSite: { name: string; bounces: number; problems: number }[];
+    planAbandon: { stops: number; times: number }[];
+    leaveCancel: number;
+    leaveContinued: number;
+  };
+  devices: { label: string; visits: number }[];
+  medianLoadMs: number | null;
   /** The pilot targets from the PRD. */
   kpi: { gardenOpen: number; logTap: number; joinTap: number; gardenVisits: number };
 };
@@ -74,6 +87,8 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
     visitsMap.get(k)!.push(e);
   }
   const visits = [...visitsMap.values()];
+  /** The golden-path steps only (not the frustration or device signals). */
+  const steps = (v: EventRow[]) => v.filter((e) => STEP_LABELS[e.event]);
   const t = (e: EventRow) => Date.parse(e.created_at);
   const has = (v: EventRow[], n: string) => v.some((e) => e.event === n);
   const checkedIn = (v: EventRow[]) =>
@@ -92,10 +107,10 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
   ].map((n) => ({ label: STEP_LABELS[n], visits: visits.filter((v) => has(v, n)).length }));
   reach.push({ label: "Checked in", visits: visits.filter(checkedIn).length });
 
-  const collapse = (v: EventRow[]) => v.map((e) => STEP_LABELS[e.event] ?? e.event).filter((l, i, a) => i === 0 || l !== a[i - 1]);
-  const paths = count(visits, (v) => { const p = collapse(v); return p.length > 6 ? p.slice(0, 6).join(" → ") + " → …" : p.join(" → "); })
+  const collapse = (v: EventRow[]) => steps(v).map((e) => STEP_LABELS[e.event] ?? e.event).filter((l, i, a) => i === 0 || l !== a[i - 1]);
+  const paths = count(visits.filter((v) => steps(v).length > 0), (v) => { const p = collapse(v); return p.length > 6 ? p.slice(0, 6).join(" → ") + " → …" : p.join(" → "); })
     .slice(0, 10).map(([path, n]) => ({ path, visits: n }));
-  const exits = count(visits, (v) => STEP_LABELS[v[v.length - 1].event] ?? v[v.length - 1].event).map(([label, n]) => ({ label, visits: n }));
+  const exits = count(visits, (v) => (steps(v).length ? STEP_LABELS[steps(v)[steps(v).length - 1].event] : "Other page (no steps)")).map(([label, n]) => ({ label, visits: n }));
 
   const lengths = visits.map((v) => (t(v[v.length - 1]) - t(v[0])) / 1000);
   const toGarden = garden.map((v) => {
@@ -114,8 +129,8 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
   const days = count(visits, (v) => day(v[0].created_at)).sort((a, b) => a[0].localeCompare(b[0]));
   const hours = Array.from({ length: 24 }, (_, h) => ({ hour: h, visits: visits.filter((v) => hour(v[0].created_at) === h).length }));
 
-  const onlyMap = visits.filter((v) => v.every((e) => e.event === "page_open"));
-  const gardenBounce = garden.filter((v) => v.every((e) => e.event === "page_open" || e.event === "garden_view") && !checkedIn(v));
+  const onlyMap = visits.filter((v) => steps(v).length > 0 && steps(v).every((e) => e.event === "page_open"));
+  const gardenBounce = garden.filter((v) => steps(v).every((e) => e.event === "page_open" || e.event === "garden_view") && !checkedIn(v));
   const wantedToGo = visits.filter((v) => has(v, "directions_tap") || has(v, "walk_open"));
   const friction = [
     { label: "Left from the map without opening a garden", visits: onlyMap.length, note: "Could be a slow map, or nothing tempting." },
@@ -125,7 +140,40 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
 
   const activeSince = (min: number) => visits.filter((v) => now.getTime() - t(v[v.length - 1]) <= min * 60000).length;
 
+  const sig = (name: string) => events.filter((e) => e.event === name);
+  const sigVisits = (name: string) => visits.filter((v) => has(v, name)).length;
+  const SIGNALS: [string, string, string][] = [
+    ["rage_click", "Repeated quick taps", "Someone tapped the same spot 3+ times in a second: something looked tappable but didn't respond, or was slow."],
+    ["error", "Something failed", "App errors, chatbot fallbacks, check-in problems, location trouble, map tiles not loading."],
+    ["slow", "Something was slow", "A chatbot answer took longer than 8 seconds."],
+    ["panel_bounce", "Opened a site and closed it within 2 s", "They didn't find what they expected, or tapped by mistake."],
+    ["site_flip", "Opened 3+ different sites within 15 s", "Hunting for something and not finding it."],
+    ["leave_cancel", "Cancelled the “You're leaving” box", "They changed their mind about leaving the guide."],
+    ["plan_abandon", "Picked stops in Plan but never opened the walk", "The planning step lost them."],
+    ["search_empty", "A search found nothing", "They looked for a garden we don't have, or mistyped."],
+    ["chat_declined", "The chatbot declined a question", "They asked something outside what it can answer."],
+  ];
+  const byDetail = events
+    .filter((e) => ["rage_click", "error", "slow", "leave_cancel", "chat_declined"].includes(e.event))
+    .reduce((m, e) => m.set(`${e.event}|${e.detail ?? "(none)"}`, (m.get(`${e.event}|${e.detail ?? "(none)"}`) ?? 0) + 1), new Map<string, number>());
+  const loads = sig("visit_info").map((e) => e.value).filter((n): n is number => typeof n === "number" && n > 0);
+  const problemEvents = ["rage_click", "error", "slow", "chat_declined"];
+
   return {
+    frustration: {
+      signals: SIGNALS.map(([k, label, hint]) => ({ label, hint, times: sig(k).length, visits: sigVisits(k) })),
+      byDetail: [...byDetail].sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ signal: STEP_LABELS[k.split("|")[0]] ?? k.split("|")[0].replace("_", " "), detail: k.split("|")[1], times: n })),
+      perSite: sites.map((s) => ({
+        name: s.name,
+        bounces: events.filter((e) => e.event === "panel_bounce" && e.site_id === s.id).length,
+        problems: events.filter((e) => problemEvents.includes(e.event) && e.site_id === s.id).length,
+      })),
+      planAbandon: count(sig("plan_abandon"), (e) => String(e.value ?? 0)).map(([stops, n]) => ({ stops: Number(stops), times: n })),
+      leaveCancel: sig("leave_cancel").length,
+      leaveContinued: sig("join_tap").length + sig("log_tap").length,
+    },
+    devices: count(sig("visit_info"), (e) => e.detail ?? "unknown").map(([label, n]) => ({ label, visits: n })),
+    medianLoadMs: median(loads),
     activeNow: { last5: activeSince(5), last30: activeSince(30) },
     since: since.toISOString(), until: now.toISOString(),
     visits: visits.length, events: events.length, checkins: checkins.length,

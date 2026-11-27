@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { commentProblem, MAX_COMMENT_CHARS } from "@/lib/comment";
-import { checkIn, checkinDetails, type TravelMode } from "@/lib/events";
+import { checkIn, checkinDetails, logEvent, type TravelMode } from "@/lib/events";
 import { FULL_CHECKIN } from "@/lib/flags";
 
 const MODES: { mode: TravelMode; label: string }[] = [
@@ -24,7 +24,9 @@ export function CheckInCard({ siteId, sites }: { siteId: string; sites: { id: st
 
   async function tap(mode: TravelMode) {
     setState("busy");
-    setState(await checkIn(siteId, mode));
+    const r = await checkIn(siteId, mode);
+    if (r === "error") logEvent("error", { siteId, detail: "checkin-failed" });
+    setState(r);
   }
 
   async function saveDetails() {
@@ -33,6 +35,7 @@ export function CheckInCard({ siteId, sites }: { siteId: string; sites: { id: st
     setProblem(null);
     setDetails("saving");
     const r = await checkinDetails(siteId, favourite || null, comment.trim() || null);
+    if (r === "error") logEvent("error", { siteId, detail: "checkin-details-failed" });
     setDetails(r === "error" ? "error" : "done");
   }
 

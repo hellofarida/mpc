@@ -31,15 +31,23 @@ export function Chatbot({ siteId }: { siteId: string }) {
     setNote(null);
     setBusy(true);
     logEvent("question", { siteId });
+    const started = performance.now();
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ siteId, question: q }),
       });
-      setTurn({ question: q, reply: (await res.json()) as ChatReply });
+      const reply = (await res.json()) as ChatReply;
+      setTurn({ question: q, reply });
       if (res.ok) setText("");
+      const took = performance.now() - started;
+      if (took > 8000) logEvent("slow", { siteId, detail: "chat", value: took });
+      if (reply.kind === "declined") logEvent("chat_declined", { siteId, detail: reply.reason });
+      else if (reply.kind === "answer" && reply.source === "template") logEvent("error", { siteId, detail: "chat-template" });
+      else if (!res.ok && reply.kind !== "invalid") logEvent("error", { siteId, detail: "chat-http" });
     } catch {
+      logEvent("error", { siteId, detail: "chat-fail" });
       setTurn({ question: q, reply: { kind: "error" } });
     } finally {
       setBusy(false);

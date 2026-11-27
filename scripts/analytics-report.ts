@@ -63,7 +63,17 @@ ${section("Journey funnel", bars(f.map((s) => ({ label: s.label, value: s.visits
 
 ${section("Where visits ended", bars(a.exits.map((e) => ({ label: e.label, value: e.visits })), a.visits), "The last thing a visit did. “Map” means they never opened a garden.")}
 
-${section("Possible friction", bars(a.friction.map((x) => ({ label: x.label, value: x.visits, note: x.note })), a.visits), "Worked out from the steps we already log. Signals like repeated taps, errors and cancelled dialogs are not logged yet, so they will appear here once they are.")}
+${section("Frustration signals", `<table><tr><th>Signal</th><th>Times</th><th>Visits</th><th>% of visits</th></tr>${a.frustration.signals.map((x) => `<tr title="${esc(x.hint)}"><td>${esc(x.label)}<br><small class="muted">${esc(x.hint)}</small></td><td>${x.times}</td><td>${x.visits}</td><td>${pct(x.visits, a.visits)}</td></tr>`).join("")}</table>`, "Logged only when they happen. A few are normal; look for the ones that keep coming back.")}
+
+${a.frustration.byDetail.length ? section("What was behind them", `<table><tr><th>Signal</th><th>Where / what</th><th>Times</th></tr>${a.frustration.byDetail.slice(0, 15).map((x) => `<tr><td>${esc(x.signal)}</td><td>${esc(x.detail)}</td><td>${x.times}</td></tr>`).join("")}</table>`, "“site-card” and “map-pin” are what was tapped. Error codes: chat-template = the chatbot fell back to a plain answer, chat-fail / chat-http = the question didn't go through, checkin-failed, geo-denied / geo-timeout = location, tiles-failed = map tiles, js-error = an app error.") : ""}
+
+${section("Leaving the guide and planning", `<div class="grid"><div class="card"><p class="muted">Cancelled the “You're leaving” box</p><p class="big">${a.frustration.leaveCancel}</p><p class="muted">vs ${a.frustration.leaveContinued} who continued to Join, Volunteer or Log</p></div><div class="card"><p class="muted">Planned stops but never opened the walk</p><p class="big">${a.frustration.planAbandon.reduce((n, p) => n + p.times, 0)}</p><p class="muted">${a.frustration.planAbandon.map((p) => `${p.times} with ${p.stops} stops`).join(", ") || "none yet"}</p></div></div>`)}
+
+${section("Problems by garden", `<table><tr><th>Site</th><th>Opened then closed fast</th><th>Taps and failures</th></tr>${a.frustration.perSite.map((s) => `<tr><td>${esc(s.name)}</td><td>${s.bounces}</td><td>${s.problems}</td></tr>`).join("")}</table>`, "Counts events that happened on that garden's page.")}
+
+${section("Possible friction", bars(a.friction.map((x) => ({ label: x.label, value: x.visits, note: x.note })), a.visits), "Worked out from the steps people took.")}
+
+${section("Devices and speed", `<div class="grid"><div class="card"><p class="muted">Visits by device</p>${bars(a.devices.map((d) => ({ label: d.label, value: d.visits })))}</div><div class="card"><p class="muted">Median page load (about 1 visit in 10 is measured)</p><p class="big">${a.medianLoadMs === null ? "n/a" : `${(a.medianLoadMs / 1000).toFixed(1)}s`}</p></div></div>`)}
 
 ${section("What visits did", bars(a.reach.map((r) => ({ label: r.label, value: r.visits })), a.visits), "Share of all visits that did each thing at least once, in any order.")}
 

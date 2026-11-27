@@ -11,34 +11,109 @@ export type EventName =
   | "log_tap"
   | "join_tap"
   | "directions_tap"
-  | "walk_open";
+  | "walk_open"
+  // frustration and performance signals (see supabase/migrations/004_frustration_events.sql)
+  | "rage_click"
+  | "error"
+  | "slow"
+  | "panel_bounce"
+  | "site_flip"
+  | "leave_cancel"
+  | "plan_abandon"
+  | "search_empty"
+  | "chat_declined"
+  | "visit_info";
 
 export type EventExtras = {
   siteId?: string;
   mapsApp?: "google" | "apple";
   stops?: string[]; // walk_open only: 2–5 site IDs
   placement?: string; // where a tap happened, e.g. "garden-join" (lowercase letters, digits, dashes)
+  detail?: string; // a short fixed code, e.g. "site-card" or "geo-denied": never free text
+  value?: number; // a small number, e.g. milliseconds
 };
 
+// ---------- batching: events wait in a small queue and go in ONE request ----------
+const FLUSH_AFTER_MS = 10_000; // send at most every 10 seconds ...
+const FLUSH_AT = 10; // ... or as soon as 10 are waiting ...
+const MAX_PER_VISIT = 60; // ... and never more than this many in one visit
+const IGNORE_REPEAT_MS = 3000; // the same event again within this long is dropped
+const COUNT_KEY = "mpc-event-count";
+
+type Row = {
+  event: EventName; site_id: string | null; maps_app: string | null; stops: string[] | null; placement: string | null;
+  detail: string | null; value: number | null; device_id: string; session_id: string;
+};
+let queue: Row[] = [];
+let timer: ReturnType<typeof setTimeout> | null = null;
+let installed = false;
+const recent = new Map<string, number>();
+
+function visitCount(): number {
+  try { return Number(sessionStorage.getItem(COUNT_KEY) ?? "0"); } catch { return 0; }
+}
+function setVisitCount(n: number) {
+  try { sessionStorage.setItem(COUNT_KEY, String(n)); } catch { /* storage blocked: the in-memory queue still works */ }
+}
+
+/** Send everything waiting, in one request. keepalive lets it finish even while the tab is closing. */
+export function flushEvents(): void {
+  if (timer) clearTimeout(timer);
+  timer = null;
+  if (queue.length === 0) return;
+  const rows = queue;
+  queue = [];
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+  void fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/events`, {
+    method: "POST",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify(rows),
+    keepalive: true,
+  })
+    .then(async (res) => {
+      if (!res.ok && process.env.NODE_ENV !== "production") console.warn("events not saved", res.status, await res.text());
+    })
+    .catch(() => {});
+}
+
+function install() {
+  if (installed) return;
+  installed = true;
+  document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && flushEvents());
+  window.addEventListener("pagehide", flushEvents);
+}
+
 /**
- * Record one golden-path step. Fire-and-forget: it never throws and never blocks the visitor.
- * Stores only the event, the garden, the time and the anonymous device ID.
+ * Record one step or signal. Fire-and-forget: it never throws and never blocks the visitor. Stores only the event,
+ * the garden, the time, a short fixed code and the anonymous device and visit ids.
  */
 export function logEvent(event: EventName, extras: EventExtras = {}): void {
-  void supabase()
-    .from("events")
-    .insert({
-      event,
-      site_id: extras.siteId ?? null,
-      maps_app: extras.mapsApp ?? null,
-      stops: extras.stops ?? null,
-      placement: extras.placement ?? null,
-      device_id: getDeviceId(),
-      session_id: getSessionId(),
-    })
-    .then(({ error }) => {
-      if (error && process.env.NODE_ENV !== "production") console.warn("logEvent failed", event, error.message);
-    });
+  if (typeof window === "undefined") return;
+  install();
+
+  const dedupKey = [event, extras.siteId, extras.detail, extras.placement, extras.stops?.join("+")].join("|");
+  const now = Date.now();
+  if (now - (recent.get(dedupKey) ?? 0) < IGNORE_REPEAT_MS) return;
+  recent.set(dedupKey, now);
+
+  const n = visitCount();
+  if (n >= MAX_PER_VISIT) return;
+  setVisitCount(n + 1);
+
+  queue.push({
+    event,
+    site_id: extras.siteId ?? null,
+    maps_app: extras.mapsApp ?? null,
+    stops: extras.stops ?? null,
+    placement: extras.placement ?? null,
+    detail: extras.detail ?? null,
+    value: extras.value === undefined ? null : Math.max(0, Math.min(3_600_000, Math.round(extras.value))),
+    device_id: getDeviceId(),
+    session_id: getSessionId(),
+  });
+  if (n + 1 === MAX_PER_VISIT) queue.push({ ...queue[queue.length - 1], event: "error", site_id: null, maps_app: null, stops: null, placement: null, detail: "event-cap", value: MAX_PER_VISIT });
+  if (queue.length >= FLUSH_AT) flushEvents();
+  else timer ??= setTimeout(flushEvents, FLUSH_AFTER_MS);
 }
 
 export type TravelMode = "walked" | "cycled" | "ran" | "other";

@@ -42,7 +42,14 @@ export default function PrivacyPage() {
             A random ID for each visit, kept only in your browser tab (not a cookie) and gone when you close it. It lets
             us count visits and see how far people got, for example how many opened a garden.
           </li>
-          <li>We do not store your name, email, or location.</li>
+          <li>
+            Signs that something went wrong or was annoying, each as a short fixed label with the time and your
+            anonymous IDs: for example tapping the same spot several times quickly, an error, a slow answer, opening a
+            garden and closing it straight away, cancelling the &quot;You&apos;re leaving&quot; box, a search that found
+            nothing, or a question the chatbot couldn&apos;t answer (the kind of question, never the words). We also note
+            whether you&apos;re on a phone, tablet or computer, and sometimes how fast the page loaded.
+          </li>
+          <li>We do not store your name, email, or location, and never what you type, where you tap on the screen, or what is on your screen.</li>
         </ul>
       </section>
 

@@ -36,4 +36,8 @@ x = await sb.rpc("checkin_details", { p_site_id: site, p_device_id: dev, p_favou
 x = await sb.from("checkins").select("comment"); t("can't read comments", !!x.error || x.data.length === 0, x.error?.message ?? `${x.data.length} rows`);
 x = await sb.from("events").insert({ event: "page_open", device_id: dev, session_id: crypto.randomUUID(), placement: "garden-join" }); t("event with session and placement (003)", !x.error, x.error?.message);
 x = await sb.from("events").insert({ event: "page_open", device_id: dev, placement: "Bad Tag!" }); t("reject a bad placement tag (003)", !!x.error, x.error?.message);
+// frustration signals (004): fixed codes only, batch insert allowed
+x = await sb.from("events").insert([{ event: "rage_click", device_id: dev, detail: "site-card" }, { event: "slow", device_id: dev, detail: "chat", value: 9000 }, { event: "visit_info", device_id: dev, detail: "phone" }]); t("batch insert of signals (004)", !x.error, x.error?.message);
+x = await sb.from("events").insert({ event: "error", device_id: dev, detail: "User typed hello there" }); t("reject free text in detail (004)", !!x.error, x.error?.message);
+x = await sb.from("events").insert({ event: "slow", device_id: dev, detail: "chat", value: -5 }); t("reject a negative value (004)", !!x.error, x.error?.message);
 console.log(r.join("\n"));

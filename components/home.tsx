@@ -34,6 +34,11 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
   const autoRoute = useRef(false); // true while the route line is on only because 2+ sites are picked in plan mode
   const opened = useRef(false);
   const layerKey = useRef(0);
+  const panelOpenedAt = useRef<{ id: string; at: number } | null>(null); // for "opened and closed within 2 s"
+  const recentOpens = useRef<{ id: string; at: number }[]>([]); // for "opened 3 different sites within 15 s"
+  const walkOpened = useRef(false); // a walk was opened since the picks last reached 2
+  const abandonLogged = useRef(false);
+  const latest = useRef({ mode: "search" as Mode, picked: [] as string[] });
   const cleanup = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelEntry = useRef(false); // true while the open panel has its own history entry
 
@@ -81,20 +86,29 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
 
   // Slide every panel back under the list, then drop them.
   function hideLayers() {
+    const o = panelOpenedAt.current;
+    if (o && Date.now() - o.at < 2000) logEvent("panel_bounce", { siteId: o.id });
+    panelOpenedAt.current = null;
     if (cleanup.current) clearTimeout(cleanup.current);
     setLayers((ls) => ls.map((l) => ({ ...l, open: false })));
     cleanup.current = setTimeout(() => setLayers([]), SLIDE_MS + 50);
   }
 
   function locate() {
-    if (!navigator.geolocation) return setLocState("denied");
+    if (!navigator.geolocation) {
+      logEvent("error", { detail: "geo-unsupported" });
+      return setLocState("denied");
+    }
     setLocState("asking");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setHere({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocState("idle");
       },
-      () => setLocState("denied"),
+      (err) => {
+        logEvent("error", { detail: err.code === 1 ? "geo-denied" : err.code === 3 ? "geo-timeout" : "geo-unavailable" });
+        setLocState("denied");
+      },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
   }
@@ -105,6 +119,14 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
       panelEntry.current = true;
     }
     if (selected === id) return;
+    const now = Date.now();
+    panelOpenedAt.current = { id, at: now };
+    recentOpens.current = [...recentOpens.current.filter((o) => now - o.at < 15000), { id, at: now }];
+    const distinct = new Set(recentOpens.current.map((o) => o.id)).size;
+    if (distinct >= 3) {
+      logEvent("site_flip", { value: distinct });
+      recentOpens.current = [];
+    }
     if (cleanup.current) clearTimeout(cleanup.current);
     const key = ++layerKey.current;
     // The open panel slides back under the list while the new one slides out, both at once.
@@ -124,7 +146,16 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
     }
   }
 
+  // Picked 2+ stops in Plan but never opened the walk: log it once when they leave Plan or close the tab.
+  function logAbandon(m: Mode, picks: string[]) {
+    if (m === "plan" && picks.length >= MIN_STOPS && !walkOpened.current && !abandonLogged.current) {
+      abandonLogged.current = true;
+      logEvent("plan_abandon", { value: picks.length });
+    }
+  }
+
   function changeMode(m: Mode) {
+    if (m !== "plan") logAbandon(mode, picked);
     setMode(m);
     syncRoute(picked.length, m);
   }
@@ -133,6 +164,10 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
     const next = picked.includes(id) ? picked.filter((x) => x !== id) : picked.length < MAX_STOPS ? [...picked, id] : picked;
     setPicked(next);
     syncRoute(next.length, mode);
+    if (next.length < MIN_STOPS) {
+      walkOpened.current = false;
+      abandonLogged.current = false;
+    }
   }
 
   function onSiteChosen(id: string) {
@@ -140,12 +175,28 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
     else open(id);
   }
 
+  useEffect(() => {
+    latest.current = { mode, picked };
+  });
+  useEffect(() => {
+    const onHide = () => document.visibilityState === "hidden" && logAbandon(latest.current.mode, latest.current.picked);
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, []);
+
   const q = query.trim().toLowerCase();
   const list = sites.map((s) => ({ s, d: here ? distanceM(here, siteCentre(s)) : null }))
     .filter(({ s }) => mode === "plan" || !q || `${s.name} ${s.suburb}`.toLowerCase().includes(q))
     .sort((a, b) => (a.d !== null && b.d !== null ? a.d - b.d : a.s.number - b.s.number));
 
   const mainSites = sites.filter((s) => s.kind !== "scattered");
+  const searchEmpty = mode === "search" && q.length > 0 && list.length === 0;
+  useEffect(() => {
+    if (!searchEmpty) return;
+    const t = setTimeout(() => logEvent("search_empty"), 1200); // only that it happened, never what was typed
+    return () => clearTimeout(t);
+  }, [searchEmpty, q]);
+
   const stops = sortWestToEast(sites.filter((s) => picked.includes(s.id)));
   const ready = stops.length >= MIN_STOPS && stops.length <= MAX_STOPS;
   // Plan mode with 2+ sites picked: draw only the path through those sites, not the whole corridor.
@@ -165,6 +216,7 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
                 key={m}
                 type="button"
                 aria-pressed={mode === m}
+                data-track="mode-toggle"
                 onClick={() => changeMode(m)}
                 className={`rounded-md py-1.5 font-medium capitalize ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
               >
@@ -192,7 +244,7 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
               <span>Nearest sites first. Your location stays on your phone.</span>
             ) : (
               <>
-                <Button variant="outline" size="sm" onClick={locate} disabled={locState === "asking"}>
+                <Button data-track="locate" variant="outline" size="sm" onClick={locate} disabled={locState === "asking"}>
                   {locState === "asking" ? "Finding you…" : "Show where I am"}
                 </Button>
                 <span>{locState === "denied" ? "Couldn't get your location." : "Stays on your phone."}</span>
@@ -221,7 +273,7 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
         </ul>
 
         {mode === "plan" && ready && (
-          <PlanBar stops={stops} here={here} />
+          <PlanBar stops={stops} here={here} onOpened={() => (walkOpened.current = true)} />
         )}
       </aside>
 
@@ -243,6 +295,7 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
                 key={m}
                 type="button"
                 aria-pressed={routeMode === m}
+                data-track="route-toggle"
                 onClick={() => {
                   autoRoute.current = false;
                   setRouteMode(m);
@@ -284,7 +337,7 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
             >
               Open in new tab
             </a>
-            <Button variant="outline" size="sm" onClick={closePanel} aria-label="Close site details">
+            <Button data-track="panel-close" variant="outline" size="sm" onClick={closePanel} aria-label="Close site details">
               Close
             </Button>
           </div>
@@ -331,19 +384,20 @@ function SiteCard({
   return (
     <li className={`rounded-xl border p-3 text-sm ${active || (mode === "plan" && checked) ? "border-primary bg-muted" : ""} ${disabled ? "opacity-50" : ""}`}>
       {mode === "plan" ? (
-        <label className="flex cursor-pointer items-center gap-3">
+        <label data-track="plan-pick" className="flex cursor-pointer items-center gap-3">
           <Checkbox checked={checked} disabled={disabled} onCheckedChange={onChoose} />
           <span>{body}</span>
         </label>
       ) : (
         <>
-          <button type="button" onClick={onChoose} className="block w-full text-left">
+          <button type="button" data-track="site-card" onClick={onChoose} className="block w-full text-left">
             {body}
           </button>
           <a
             href={googleDirectionsUrl(c)}
             target="_blank"
             rel="noopener noreferrer"
+            data-track="open-in-maps"
             className="mt-2 inline-block text-xs underline"
             onClick={() => logEvent("directions_tap", { siteId: site.id, mapsApp: "google" })}
           >
@@ -355,7 +409,7 @@ function SiteCard({
   );
 }
 
-function PlanBar({ stops, here }: { stops: Site[]; here: Here | null }) {
+function PlanBar({ stops, here, onOpened }: { stops: Site[]; here: Here | null; onOpened: () => void }) {
   const google = buildGoogleWalkUrl(stops, here);
   const apple = buildAppleWalkUrl(stops);
   const ids = stops.map((s) => s.id);
@@ -372,7 +426,10 @@ function PlanBar({ stops, here }: { stops: Site[]; here: Here | null }) {
           target="_blank"
           rel="noopener noreferrer"
           className={buttonVariants({ variant: "default" })}
-          onClick={() => logEvent("walk_open", { stops: ids, mapsApp: "google" })}
+          onClick={() => {
+            onOpened();
+            logEvent("walk_open", { stops: ids, mapsApp: "google" });
+          }}
         >
           Open in Google Maps
         </a>
@@ -381,7 +438,10 @@ function PlanBar({ stops, here }: { stops: Site[]; here: Here | null }) {
           target="_blank"
           rel="noopener noreferrer"
           className={buttonVariants({ variant: "outline" })}
-          onClick={() => logEvent("walk_open", { stops: ids, mapsApp: "apple" })}
+          onClick={() => {
+            onOpened();
+            logEvent("walk_open", { stops: ids, mapsApp: "apple" });
+          }}
         >
           Apple Maps
         </a>

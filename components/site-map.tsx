@@ -2,7 +2,8 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { logEvent } from "@/lib/events";
 import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
 import type { RouteFile, RouteMode, RouteVariant } from "@/lib/route";
 import { siteCentre, type Site } from "@/lib/sites";
@@ -84,6 +85,7 @@ function Focus({ sites, ids, panelOpen }: { sites: Site[]; ids: string[]; panelO
 }
 
 function LeafletMap({ sites, route, routeMode, chosen, here, picked, panelOpen, onSelect }: Props) {
+  const tileErrors = useRef(0);
   return (
     <MapContainer
       bounds={L.latLngBounds(route.variants.walking.coords)}
@@ -92,6 +94,7 @@ function LeafletMap({ sites, route, routeMode, chosen, here, picked, panelOpen, 
       className="h-full w-full"
     >
       <TileLayer
+        eventHandlers={{ tileerror: () => ++tileErrors.current === 3 && logEvent("error", { detail: "tiles-failed" }) }}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />

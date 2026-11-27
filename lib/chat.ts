@@ -225,7 +225,7 @@ export interface ChatAi {
 
 export type ChatReply =
   | { kind: "answer"; text: string; source: "ai" | "template"; sourceLine: string; lookup: LookupName }
-  | { kind: "declined"; message: string; link?: Link }
+  | { kind: "declined"; reason: DeclineReason; message: string; link?: Link }
   | { kind: "invalid"; message: string };
 
 export async function answerQuestion(
@@ -244,7 +244,7 @@ export async function answerQuestion(
   const question = v.question;
 
   const early = obviousOutOfScope(question, siteId, sites);
-  if (early) return { kind: "declined", ...declineFor(early) };
+  if (early) return { kind: "declined", reason: early, ...declineFor(early) };
 
   // AI call 1: pick one lookup (max 2 attempts), else the keyword rule
   let lookup: Lookup | null = null;
@@ -255,7 +255,7 @@ export async function answerQuestion(
       if (!choice) {
         log(`pick attempt ${attempt} rejected: not one of our lookups`);
       } else if ("decline" in choice) {
-        return { kind: "declined", ...declineFor(choice.decline) };
+        return { kind: "declined", reason: choice.decline, ...declineFor(choice.decline) };
       } else {
         lookup = choice.lookup;
       }

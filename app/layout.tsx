@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { TopNav } from "@/components/top-nav";
+import { Tracker } from "@/components/tracker";
 import { SiteFooter } from "@/components/site-footer";
 
 const instrumentSans = Instrument_Sans({
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${instrumentSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <Tracker />
         <TopNav />
         {children}
         <SiteFooter />

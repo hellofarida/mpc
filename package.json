@@ -17,6 +17,7 @@
     "route": "tsx scripts/route.ts",
     "analytics": "node --env-file=.env.local node_modules/.bin/tsx scripts/analytics.ts",
     "analytics:report": "node --env-file=.env.local node_modules/.bin/tsx scripts/analytics-report.ts",
+    "analytics:prune": "node --env-file=.env.local node_modules/.bin/tsx scripts/analytics-prune.ts",
     "refresh": "node --env-file=.env.local node_modules/.bin/tsx scripts/refresh.ts",
     "db:seed": "node --env-file=.env.local node_modules/.bin/tsx scripts/db-seed.ts",
     "eval:chat": "node --env-file=.env.local node_modules/.bin/tsx scripts/eval-chat.ts",

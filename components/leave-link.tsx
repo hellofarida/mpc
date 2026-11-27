@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { logEvent } from "@/lib/events";
 
 /**
  * Every link to another website goes through this "You're leaving the MPC guide" step.
@@ -57,7 +58,14 @@ export function LeaveLink({
               >
                 Continue
               </a>
-              <Button variant="outline" onClick={() => setOpen(false)} autoFocus>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  logEvent("leave_cancel", { detail: destination.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) });
+                  setOpen(false);
+                }}
+                autoFocus
+              >
                 Cancel
               </Button>
             </div>
