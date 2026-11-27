@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Logo } from "@/components/logo";
 
 const LINKS = [
   { href: "/about", label: "About" },
@@ -22,12 +21,7 @@ export function TopNav() {
     >
       <nav aria-label="Main" className="flex h-full w-full items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <Logo />
-          <span className="text-sm font-semibold leading-tight">
-            Melbourne Pollinator
-            <br />
-            Corridor
-          </span>
+          <span className="whitespace-nowrap text-sm font-semibold">Melbourne Pollinator Corridor</span>
         </Link>
         <ul className="hidden items-center gap-6 text-sm md:flex">
           {LINKS.map((l) => (

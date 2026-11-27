@@ -70,3 +70,6 @@ Sites 1 and 2 sit among residents' own street gardens that aren't part of the MP
 3. Directions/walk taps and arrivals. Arrivals are an *estimate*: a tap followed by a check-in from the same device.
 
 AI KPIs: 100% of numbers correct on a 20-question set. Cost about $0.008 per summary and about $0.03 per chatbot answer, under $5 in total.
+
+## Session length
+- Flag it to the user every time a session is nearing 200k tokens of context, and suggest starting a new session (with a short hand-over summary) before it gets there.

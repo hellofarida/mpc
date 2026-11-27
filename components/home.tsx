@@ -180,7 +180,14 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
     <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:h-dvh">
       <aside className="order-2 flex min-h-0 flex-1 flex-col border-t bg-background md:absolute md:bottom-3 md:left-3 md:top-3 md:z-[1410] md:w-100 md:flex-none md:overflow-hidden md:rounded-2xl md:border-0 md:shadow-xl">
         <div className={`p-4 ${mode === "search" ? "border-b" : "pb-3"}`}>
-          <div role="group" aria-label="Mode" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
+          <div role="group" aria-label="Mode" className="relative grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
+            {/* The white pill slides across to the selected side. */}
+            <span
+              aria-hidden="true"
+              className={`absolute bottom-1 left-1 top-1 w-[calc(50%-0.375rem)] rounded-md bg-background shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                mode === "plan" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-0"
+              }`}
+            />
             {(["search", "plan"] as const).map((m) => (
               <button
                 key={m}
@@ -188,7 +195,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
                 aria-pressed={mode === m}
                 data-track="mode-toggle"
                 onClick={() => changeMode(m)}
-                className={`rounded-md py-2 font-medium capitalize ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                className={`relative z-10 rounded-md py-2 font-medium capitalize transition-colors duration-200 ${mode === m ? "" : "text-muted-foreground"}`}
               >
                 {m}
               </button>
