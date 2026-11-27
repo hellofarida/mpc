@@ -3,7 +3,8 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useState } from "react";
-import { CircleMarker, MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
+import type { RouteFile, RouteMode, RouteVariant } from "@/lib/route";
 import { siteCentre, type Site } from "@/lib/sites";
 
 const PANEL_PX = 448; // the site panel (28rem) covers this much of the map on desktop
@@ -35,9 +36,9 @@ type Here = { lat: number; lng: number } | null;
  * With cacheComponents the page is hidden (effects cleaned up) when you navigate away and shown again on Back.
  * Leaflet's map is destroyed by that cleanup and can't be reused, so mount a fresh one each time the page is visible.
  */
-type Props = { sites: Site[]; here: Here; picked: string[]; panelOpen: boolean; onSelect: (id: string) => void };
+type Props = { sites: Site[]; route: RouteFile; routeMode: RouteMode; chosen: RouteVariant | null; here: Here; picked: string[]; panelOpen: boolean; onSelect: (id: string) => void };
 
-export default function SiteMap({ sites, here, picked, panelOpen, onSelect }: Props) {
+export default function SiteMap({ sites, route, routeMode, chosen, here, picked, panelOpen, onSelect }: Props) {
   const [live, setLive] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setLive(true), 0);
@@ -47,7 +48,7 @@ export default function SiteMap({ sites, here, picked, panelOpen, onSelect }: Pr
     };
   }, []);
   if (!live) return <div className="h-full w-full bg-muted" />;
-  return <LeafletMap sites={sites} here={here} picked={picked} panelOpen={panelOpen} onSelect={onSelect} />;
+  return <LeafletMap sites={sites} route={route} routeMode={routeMode} chosen={chosen} here={here} picked={picked} panelOpen={panelOpen} onSelect={onSelect} />;
 }
 
 /**
@@ -82,11 +83,11 @@ function Focus({ sites, ids, panelOpen }: { sites: Site[]; ids: string[]; panelO
   return null;
 }
 
-function LeafletMap({ sites, here, picked, panelOpen, onSelect }: Props) {
+function LeafletMap({ sites, route, routeMode, chosen, here, picked, panelOpen, onSelect }: Props) {
   return (
     <MapContainer
-      center={[-37.8345, 144.9695]}
-      zoom={14}
+      bounds={L.latLngBounds(route.variants.walking.coords)}
+      boundsOptions={{ padding: [24, 24] }}
       scrollWheelZoom={false}
       className="h-full w-full"
     >
@@ -94,6 +95,21 @@ function LeafletMap({ sites, here, picked, panelOpen, onSelect }: Props) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      {routeMode !== "off" && (
+        <Polyline
+          positions={(chosen ?? route.variants[routeMode]).coords}
+          pathOptions={{ color: routeMode === "walking" ? "#3b6d11" : "#185fa5", weight: 4, opacity: 0.85, dashArray: routeMode === "walking" ? "2 8" : undefined, lineCap: "round" }}
+        />
+      )}
+      {routeMode !== "off" && !chosen &&
+        [route.waypoints[0], route.waypoints[route.waypoints.length - 1]].map((w, i) => (
+          <CircleMarker key={w.name} center={[w.lat, w.lng]} radius={6} pathOptions={{ color: "#fff", weight: 2, fillColor: i === 0 ? "#3b6d11" : "#185fa5", fillOpacity: 1 }}>
+            <Tooltip direction="top" offset={[0, -6]} permanent={false}>
+              {i === 0 ? "Start: " : "End: "}
+              {w.name}
+            </Tooltip>
+          </CircleMarker>
+        ))}
       <Focus sites={sites} ids={picked} panelOpen={panelOpen} />
       {sites.map((s) => {
         const c = siteCentre(s);

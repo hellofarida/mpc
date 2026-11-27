@@ -6,6 +6,7 @@ import { buttonVariants, Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { logEvent } from "@/lib/events";
+import { chosenPath, km, minutes, type RouteFile, type RouteMode } from "@/lib/route";
 import { distanceM, siteCentre, sortWestToEast, type Site } from "@/lib/sites";
 import { MAX_STOPS, MIN_STOPS, buildAppleWalkUrl, buildGoogleWalkUrl, googleDirectionsUrl } from "@/lib/walk";
 
@@ -19,7 +20,7 @@ type Mode = "search" | "plan";
 type Layer = { key: number; id: string; open: boolean };
 const SLIDE_MS = 200;
 
-export function Home({ sites, details }: { sites: Site[]; details: Record<string, ReactNode> }) {
+export function Home({ sites, route, details }: { sites: Site[]; route: RouteFile; details: Record<string, ReactNode> }) {
   const [here, setHere] = useState<Here | null>(null);
   const [locState, setLocState] = useState<"idle" | "asking" | "denied">("idle");
   const [mode, setMode] = useState<Mode>("search");
@@ -29,6 +30,8 @@ export function Home({ sites, details }: { sites: Site[]; details: Record<string
   const top = layers[layers.length - 1];
   const selected = top?.open ? top.id : null;
   const [picked, setPicked] = useState<string[]>([]);
+  const [routeMode, setRouteMode] = useState<RouteMode>("off");
+  const autoRoute = useRef(false); // true while the route line is on only because 2+ sites are picked in plan mode
   const opened = useRef(false);
   const layerKey = useRef(0);
   const cleanup = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,7 +46,7 @@ export function Home({ sites, details }: { sites: Site[]; details: Record<string
   // "Plan walk" in the nav switches to plan mode (on arrival with #plan-walk, or from this page via an event).
   useEffect(() => {
     const plan = () => {
-      setMode("plan");
+      changeMode("plan");
       closePanel();
     };
     const t = location.hash === "#plan-walk" ? setTimeout(plan, 0) : undefined;
@@ -109,8 +112,27 @@ export function Home({ sites, details }: { sites: Site[]; details: Record<string
     cleanup.current = setTimeout(() => setLayers((ls) => ls.filter((l) => l.open)), SLIDE_MS + 50);
   }
 
+  // In plan mode, picking 2 or more sites switches the walking route line on by itself; it goes back off when the
+  // picks drop below 2 or you leave plan mode (unless you chose a route setting yourself).
+  function syncRoute(count: number, m: Mode) {
+    if (m === "plan" && count >= MIN_STOPS && routeMode === "off") {
+      setRouteMode("walking");
+      autoRoute.current = true;
+    } else if ((m !== "plan" || count < MIN_STOPS) && autoRoute.current) {
+      setRouteMode("off");
+      autoRoute.current = false;
+    }
+  }
+
+  function changeMode(m: Mode) {
+    setMode(m);
+    syncRoute(picked.length, m);
+  }
+
   function toggle(id: string) {
-    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < MAX_STOPS ? [...p, id] : p));
+    const next = picked.includes(id) ? picked.filter((x) => x !== id) : picked.length < MAX_STOPS ? [...picked, id] : picked;
+    setPicked(next);
+    syncRoute(next.length, mode);
   }
 
   function onSiteChosen(id: string) {
@@ -125,6 +147,12 @@ export function Home({ sites, details }: { sites: Site[]; details: Record<string
 
   const stops = sortWestToEast(sites.filter((s) => picked.includes(s.id)));
   const ready = stops.length >= MIN_STOPS && stops.length <= MAX_STOPS;
+  // Plan mode with 2+ sites picked: draw only the path through those sites, not the whole corridor.
+  const chosen =
+    mode === "plan" && stops.length >= MIN_STOPS && routeMode !== "off"
+      ? chosenPath(route, stops.map((s) => s.id), routeMode)
+      : null;
+  const shownRoute = chosen ?? (routeMode === "off" ? null : route.variants[routeMode]);
 
   return (
     <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:flex-row">
@@ -136,7 +164,7 @@ export function Home({ sites, details }: { sites: Site[]; details: Record<string
                 key={m}
                 type="button"
                 aria-pressed={mode === m}
-                onClick={() => setMode(m)}
+                onClick={() => changeMode(m)}
                 className={`rounded-md py-1.5 font-medium capitalize ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
               >
                 {m}
@@ -196,11 +224,38 @@ export function Home({ sites, details }: { sites: Site[]; details: Record<string
       <div className="relative order-1 h-[38%] shrink-0 md:order-2 md:h-auto md:flex-1">
         <SiteMap
           sites={sites}
+          route={route}
+          routeMode={routeMode}
+          chosen={chosen}
           here={here}
           picked={mode === "plan" ? picked : selected ? [selected] : []}
           panelOpen={!!selected}
           onSelect={onSiteChosen}
         />
+        <div className="absolute right-2 top-2 z-[1000] w-44 space-y-1 rounded-lg border bg-background/95 p-1.5 text-xs shadow-sm">
+          <div role="group" aria-label="Corridor route" className="flex items-center gap-1">
+            {([["walking", "Walk"], ["cycling", "Cycle"], ["off", "Off"]] as const).map(([m, label]) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={routeMode === m}
+                onClick={() => {
+                  autoRoute.current = false;
+                  setRouteMode(m);
+                }}
+                className={`flex-1 rounded-md px-1 py-1 font-medium ${routeMode === m ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {routeMode !== "off" && shownRoute && (
+            <p className="hidden px-1 text-muted-foreground md:block">
+              {chosen ? "Your walk" : "Corridor route, Westgate Park to the Botanic Gardens"}: {km(shownRoute.distanceM)},{" "}
+              {minutes(shownRoute.durationS)} {routeMode === "walking" ? "on foot" : "by bike"}. Indicative.
+            </p>
+          )}
+        </div>
       </div>
 
       {layers.map((l, i) => (
