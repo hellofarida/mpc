@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/logo";
 
@@ -11,9 +12,14 @@ const LINKS = [
 
 export function TopNav() {
   const [open, setOpen] = useState(false);
+  const home = usePathname() === "/"; // on the map page (desktop) the nav floats over the map, right of the list panel
 
   return (
-    <header className="sticky top-0 z-[1500] h-14 border-b bg-background">
+    <header
+      className={`sticky top-0 z-[1500] h-14 border-b bg-background ${
+        home ? "md:fixed md:left-[26.5rem] md:right-3 md:top-3 md:rounded-2xl md:border-0 md:shadow-xl" : ""
+      }`}
+    >
       <nav aria-label="Main" className="flex h-full w-full items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
           <Logo />

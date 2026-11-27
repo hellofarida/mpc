@@ -4,13 +4,14 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { pinIcon } from "@/components/pin-icon";
 import { useEffect, useState } from "react";
-import { CircleMarker, MapContainer, Marker, Polyline, Tooltip, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, Polyline, Tooltip, ZoomControl, useMap } from "react-leaflet";
 import { BaseTiles } from "@/components/base-tiles";
 import { MAP_LIMITS } from "@/lib/map-tiles";
 import type { RouteFile, RouteMode, RouteVariant } from "@/lib/route";
 import { siteCentre, type Site } from "@/lib/sites";
 
-const PANEL_PX = 448; // the site panel (28rem) covers this much of the map on desktop
+const LIST_PX = 412; // desktop: the floating list panel covers this much of the left of the map (12px gap + 400px)
+const PANEL_PX = 460; // and the site panel next to it (448px + 12px gap)
 
 type Props = { sites: Site[]; route: RouteFile; routeMode: RouteMode; chosen: RouteVariant | null; picked: string[]; panelOpen: boolean; onSelect: (id: string) => void };
 
@@ -41,14 +42,15 @@ function Focus({ sites, ids, panelOpen }: { sites: Site[]; ids: string[]; panelO
       .filter((x) => !!x)
       .map((x) => siteCentre(x!));
     if (pts.length === 0) return;
-    const inset = panelOpen && window.innerWidth >= 768 ? PANEL_PX : 0;
+    const desktop = window.innerWidth >= 768;
+    const inset = desktop ? LIST_PX + (panelOpen ? PANEL_PX : 0) : 0;
     if (pts.length === 1) {
       const z = Math.max(map.getZoom(), 15);
       const p = map.project([pts[0].lat, pts[0].lng], z).subtract([inset / 2, 0]);
       map.flyTo(map.unproject(p, z), z, { duration: 0.5 });
     } else {
       map.flyToBounds(L.latLngBounds(pts.map((c) => [c.lat, c.lng] as [number, number])), {
-        paddingTopLeft: [inset + 48, 48],
+        paddingTopLeft: [inset + 48, desktop ? 96 : 48],
         paddingBottomRight: [48, 48],
         maxZoom: 16,
         duration: 0.5,
@@ -60,10 +62,12 @@ function Focus({ sites, ids, panelOpen }: { sites: Site[]; ids: string[]; panelO
 }
 
 function LeafletMap({ sites, route, routeMode, chosen, picked, panelOpen, onSelect }: Props) {
+  const desktop = window.innerWidth >= 768; // this map only ever renders in the browser
   return (
     <MapContainer
       bounds={L.latLngBounds(sites.map((s) => { const c = siteCentre(s); return [c.lat, c.lng] as [number, number]; }))}
-      boundsOptions={{ padding: [40, 40] }}
+      boundsOptions={{ paddingTopLeft: [desktop ? LIST_PX + 40 : 40, desktop ? 96 : 40], paddingBottomRight: [40, 40] }}
+      zoomControl={false}
       zoomSnap={0.25}
       minZoom={MAP_LIMITS.minZoom}
       maxZoom={MAP_LIMITS.maxZoom}
@@ -73,6 +77,7 @@ function LeafletMap({ sites, route, routeMode, chosen, picked, panelOpen, onSele
       className="h-full w-full"
     >
       <BaseTiles />
+      <ZoomControl position="bottomright" />
       {routeMode !== "off" && (
         <Polyline
           positions={(chosen ?? route.variants[routeMode]).coords}

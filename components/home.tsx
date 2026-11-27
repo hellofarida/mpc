@@ -27,6 +27,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
   const top = layers[layers.length - 1];
   const selected = top?.open ? top.id : null;
   const [picked, setPicked] = useState<string[]>([]);
+  const [backAnim, setBackAnim] = useState(false); // true right after "back" from the plan: fade the list back in from the left
   const [planView, setPlanView] = useState(false); // Plan tab, step 2: the plan replaces the list of sites
   const [routeMode, setRouteMode] = useState<RouteMode>("off");
   const autoRoute = useRef(false); // true while the route line is on only because 2+ sites are picked in plan mode
@@ -112,6 +113,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
   }
 
   function changeMode(m: Mode) {
+    setBackAnim(false);
     if (m !== "plan") {
       logAbandon(mode, picked);
       setPlanView(false);
@@ -172,10 +174,12 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
       : null;
   const shownRoute = chosen ?? (routeMode === "off" ? null : route.variants[routeMode]);
 
+  const showPlan = mode === "plan" && planView && ready;
+
   return (
-    <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:flex-row">
-      <aside className="order-2 flex min-h-0 flex-1 flex-col border-t bg-background md:relative md:z-[1410] md:order-1 md:w-100 md:flex-none md:border-r md:border-t-0">
-        <div className="space-y-3 border-b p-4">
+    <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden md:h-dvh">
+      <aside className="order-2 flex min-h-0 flex-1 flex-col border-t bg-background md:absolute md:bottom-3 md:left-3 md:top-3 md:z-[1410] md:w-100 md:flex-none md:overflow-hidden md:rounded-2xl md:border-0 md:shadow-xl">
+        <div className={`p-4 ${mode === "search" ? "border-b" : "pb-3"}`}>
           <div role="group" aria-label="Mode" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
             {(["search", "plan"] as const).map((m) => (
               <button
@@ -190,42 +194,60 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
               </button>
             ))}
           </div>
-          {mode === "plan" && planView && ready && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                data-track="plan-back"
-                onClick={() => setPlanView(false)}
-                aria-label="Back to picking sites"
-                className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-lg hover:bg-muted"
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 10H4M9 5l-5 5 5 5" />
-                </svg>
-              </button>
-              <div>
-                <h2 className="text-lg font-semibold">Your plan</h2>
-                <p className="text-sm">{stops.length} stops, west to east</p>
-              </div>
-            </div>
-          )}
-          {mode === "plan" && !(planView && ready) && (
-            <div>
-              <h2 className="text-lg font-semibold">Plan your journey</h2>
-              <p className="text-sm">
-                Pick {MIN_STOPS} to {MAX_STOPS} sites for your walk.
-              </p>
-            </div>
-          )}
         </div>
 
-        {mode === "plan" && planView && ready ? (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            <PlanView stops={stops} route={route} images={images} onOpened={() => (walkOpened.current = true)} onViewSite={(id) => open(id)} />
-          </div>
-        ) : (
-          <>
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 pt-4 text-xs text-muted-foreground">
+        {/* One block: the heading, divider and everything under it swap and animate together, sideways only. */}
+        <div
+          key={showPlan ? "plan" : "pick"}
+          className={`flex min-h-0 flex-1 flex-col ${
+            showPlan
+              ? "animate-in duration-300 fade-in slide-in-from-right-4 motion-reduce:animate-none"
+              : backAnim
+                ? "animate-in duration-300 fade-in slide-in-from-left-4 motion-reduce:animate-none"
+                : ""
+          }`}
+        >
+          {mode === "plan" && (
+            <div className="border-b px-4 pb-4">
+              {showPlan ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    data-track="plan-back"
+                    onClick={() => {
+                      setBackAnim(true);
+                      setPlanView(false);
+                    }}
+                    aria-label="Back to picking sites"
+                    className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-lg hover:bg-muted"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 10H4M9 5l-5 5 5 5" />
+                    </svg>
+                  </button>
+                  <div>
+                    <h2 className="text-lg font-semibold">Your plan</h2>
+                    <p className="text-sm">{stops.length} stops, west to east</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h2 className="text-lg font-semibold">Plan your journey</h2>
+                  <p className="text-sm">
+                    Pick {MIN_STOPS} to {MAX_STOPS} sites for your walk.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {showPlan ? (
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <PlanView stops={stops} route={route} images={images} onOpened={() => (walkOpened.current = true)} onViewSite={(id) => open(id)} />
+            </div>
+          ) : (
+            <>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 pb-4 pt-4 text-xs text-muted-foreground">
           <span>
             {plural(mainSites.reduce((n, s) => n + s.gardens, 0), "garden")} across the {mainSites.length} main sites
           </span>
@@ -263,16 +285,20 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
         {mode === "plan" && (
           <div className="flex items-center justify-between gap-3 border-t bg-background p-4 text-sm">
             <span role="status">{picked.length} selected</span>
-            <Button data-track="view-plan" disabled={!ready} onClick={() => setPlanView(true)}>
+            <Button data-track="view-plan" disabled={!ready} onClick={() => {
+                setBackAnim(false);
+                setPlanView(true);
+              }}>
               View plan
             </Button>
           </div>
         )}
-          </>
-        )}
+            </>
+          )}
+        </div>
       </aside>
 
-      <div className="relative order-1 h-[38%] shrink-0 md:order-2 md:h-auto md:flex-1">
+      <div className="relative order-1 h-[38%] shrink-0 md:absolute md:inset-0 md:order-2 md:h-auto">
         <SiteMap
           sites={sites}
           route={route}
@@ -282,7 +308,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
           panelOpen={!!selected}
           onSelect={onSiteChosen}
         />
-        <div className="absolute right-2 top-2 z-[1000] w-44 space-y-1 rounded-lg border bg-background/95 p-1.5 text-xs shadow-sm">
+        <div className="absolute right-2 top-2 z-[1000] w-44 space-y-1 rounded-lg border bg-background/95 p-1.5 text-xs shadow-sm md:right-3 md:top-20 md:rounded-2xl md:border-0 md:shadow-lg">
           <div role="group" aria-label="Corridor route" className="flex items-center gap-1">
             {([["walking", "Walk"], ["cycling", "Cycle"], ["off", "Off"]] as const).map(([m, label]) => (
               <button
@@ -315,11 +341,11 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
           aria-label="Site details"
           aria-hidden={!l.open || i !== layers.length - 1}
           inert={!l.open || i !== layers.length - 1}
-          style={{ zIndex: 1400 + i }}
-          className={`fixed bottom-0 left-0 right-0 top-14 flex flex-col bg-background shadow-xl transition-[translate,visibility] duration-200 md:left-100 md:right-auto md:w-[28rem] ${
+          style={{ zIndex: 1400 + i, transitionDuration: "200ms, 150ms, 200ms" }}
+          className={`fixed bottom-0 left-0 right-0 top-14 flex flex-col bg-background shadow-xl transition-[translate,opacity,visibility] md:bottom-3 md:left-[26.5rem] md:right-auto md:top-20 md:w-[28rem] md:overflow-hidden md:rounded-2xl ${
             l.open
-              ? "translate-x-0 animate-in duration-200 slide-in-from-right-full md:slide-in-from-left-full"
-              : "invisible translate-x-full md:-translate-x-full"
+              ? "translate-x-0 animate-in duration-200 fade-in slide-in-from-right-full md:slide-in-from-left-full"
+              : "invisible translate-x-full opacity-0 md:-translate-x-full"
           }`}
         >
           <button

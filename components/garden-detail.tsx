@@ -129,6 +129,7 @@ export async function GardenDetail({ id }: { id: string }) {
           {
             id: "chat",
             label: "Chat",
+            fillToTallest: true,
             content: (
               <Card>
                 <CardHeader>

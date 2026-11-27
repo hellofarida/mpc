@@ -1,16 +1,45 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export type SiteTab = { id: string; label: string; content: React.ReactNode };
+export type SiteTab = { id: string; label: string; content: React.ReactNode; fillToTallest?: boolean };
 
 /**
  * About / Stats / Sightings / Chat. All four stay mounted (so a half-typed chat question or the map isn't lost when you
  * switch), only the active one is shown. Left and right arrow keys move between tabs.
+ * A tab marked fillToTallest (Chat) is given at least the height of the tallest tab, so the scroll position you had
+ * isn't cut short when you switch to it.
  */
 export function SiteTabs({ tabs }: { tabs: SiteTab[] }) {
   const [active, setActive] = useState(tabs[0].id);
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const panels = useRef<Record<string, HTMLDivElement | null>>({});
+  const fill = useRef(tabs.filter((t) => t.fillToTallest).map((t) => t.id));
+
+  /** Measures every panel (briefly showing the hidden ones within one frame, so nothing is painted or loaded). */
+  function equalise() {
+    let tallest = 0;
+    for (const el of Object.values(panels.current)) {
+      if (!el) continue;
+      const wasHidden = el.hidden;
+      if (wasHidden) el.hidden = false;
+      const own = el.style.minHeight;
+      el.style.minHeight = "";
+      tallest = Math.max(tallest, el.offsetHeight);
+      el.style.minHeight = own;
+      if (wasHidden) el.hidden = true;
+    }
+    for (const id of fill.current) {
+      const el = panels.current[id];
+      if (el) el.style.minHeight = `${tallest}px`;
+    }
+  }
+
+  useLayoutEffect(equalise, [active]);
+  useEffect(() => {
+    window.addEventListener("resize", equalise);
+    return () => window.removeEventListener("resize", equalise);
+  }, []);
 
   function onKey(e: React.KeyboardEvent, i: number) {
     const next = e.key === "ArrowRight" ? (i + 1) % tabs.length : e.key === "ArrowLeft" ? (i + tabs.length - 1) % tabs.length : null;
@@ -47,7 +76,17 @@ export function SiteTabs({ tabs }: { tabs: SiteTab[] }) {
         ))}
       </div>
       {tabs.map((t) => (
-        <div key={t.id} id={`panel-${t.id}`} role="tabpanel" aria-labelledby={`tab-${t.id}`} hidden={active !== t.id} className="space-y-8 p-5">
+        <div
+          key={t.id}
+          ref={(el) => {
+            panels.current[t.id] = el;
+          }}
+          id={`panel-${t.id}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${t.id}`}
+          hidden={active !== t.id}
+          className="space-y-8 p-5"
+        >
           {t.content}
         </div>
       ))}
