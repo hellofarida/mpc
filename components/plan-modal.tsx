@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useState } from "react";
 import { SiteThumb } from "@/components/site-thumb";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { logEvent } from "@/lib/events";
@@ -50,92 +51,143 @@ export function WalkButtons({ stops, onOpened }: { stops: Site[]; onOpened: () =
   );
 }
 
-/** The chosen walk in one place: stops in order, the distance and time between them, and ways to take it with you. */
-export function PlanModal({ stops, route, images, onClose, onOpened }: { stops: Site[]; route: RouteFile; images: Record<string, SiteImage>; onClose: () => void; onOpened: () => void }) {
-  const [mode, setMode] = useState<"walking" | "cycling">("walking");
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+/**
+ * Take the plan with you without us holding anything: the phone's own share sheet (message, email, notes...), a copy
+ * of the link, or a ready-made email in the visitor's own mail app. The link holds the whole plan (/plan?stops=...).
+ */
+export function ShareButtons({ stops }: { stops: Site[] }) {
+  const [note, setNote] = useState<string | null>(null);
+  const link = () => `${window.location.origin}/plan?stops=${stops.map((s) => s.id).join(",")}`;
+  const summary = () => `My walk through the Melbourne Pollinator Corridor: ${stops.map((s) => s.name).join(", then ")}.`;
 
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(link());
+      setNote("Link copied.");
+    } catch {
+      setNote("Couldn't copy. Long-press the address bar to copy the link.");
+    }
+  }
+
+  async function share() {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "My MPC walk", text: summary(), url: link() });
+      } catch {
+        /* closed the share sheet: nothing to do */
+      }
+    } else await copy(); // this browser has no share sheet: copy the link instead
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        <Button data-track="plan-share" onClick={share}>
+          Share
+        </Button>
+        <Button variant="outline" data-track="plan-copy" onClick={copy}>
+          Copy link
+        </Button>
+        <Button
+          variant="outline"
+          data-track="plan-email"
+          onClick={() => {
+            const body = `${summary()}\n\n${stops.map((s, i) => `${i + 1}. ${s.name}, ${s.suburb}`).join("\n")}\n\n${link()}`;
+            window.location.href = `mailto:?subject=${encodeURIComponent("My MPC walk")}&body=${encodeURIComponent(body)}`;
+          }}
+        >
+          Email it
+        </Button>
+      </div>
+      {note && (
+        <p role="status" className="text-xs text-muted-foreground">
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The plan itself: stops in order, the distance and time between them, and ways to take it with you. */
+export function PlanView({
+  stops,
+  route,
+  images,
+  onOpened = () => {},
+  onViewSite,
+  linkSites = false,
+}: {
+  stops: Site[];
+  route: RouteFile;
+  images: Record<string, SiteImage>;
+  onOpened?: () => void;
+  onViewSite?: (id: string) => void; // in the pop-up: open that site's panel
+  linkSites?: boolean; // on the plan page: link to that site's own page
+}) {
+  const [mode, setMode] = useState<"walking" | "cycling">("walking");
   const legs = stops.slice(1).map((s, i) => route.legs[stops[i].id]?.[s.id]?.[mode] ?? null);
   const known = legs.filter((l) => l !== null);
   const total = known.reduce((n, l) => ({ d: n.d + l.distanceM, s: n.s + l.durationS }), { d: 0, s: 0 });
   const verb = mode === "walking" ? "on foot" : "by bike";
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="plan-title"
-      className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="max-h-[88dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-background p-4 shadow-lg sm:rounded-2xl">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 id="plan-title" className="text-lg font-semibold">
-              Your plan
-            </h2>
-            <p className="text-sm text-muted-foreground">{stops.length} stops, west to east</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={onClose} autoFocus>
-            Close
-          </Button>
-        </div>
-
-        <div role="group" aria-label="How you'll travel" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
-          {([["walking", "Walk"], ["cycling", "Cycle"]] as const).map(([m, label]) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={mode === m}
-              onClick={() => setMode(m)}
-              className={`rounded-md py-1.5 font-medium ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <ol className="space-y-1">
-          {stops.map((s, i) => (
-            <li key={s.id}>
-              <div className="flex items-center gap-3">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                  {i + 1}
-                </span>
-                <SiteThumb image={images[s.id]} className="size-12" />
-                <span className="min-w-0 text-sm">
-                  <span className="block font-medium">{s.name}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{s.suburb}</span>
-                </span>
-              </div>
-              {i < legs.length && (
-                <p className="ml-3 border-l-2 border-dashed py-2 pl-6 text-xs text-muted-foreground">
-                  {legs[i] ? `${km(legs[i]!.distanceM)}, ${minutes(legs[i]!.durationS)} ${verb}` : "Distance not available"}
-                </p>
-              )}
-            </li>
-          ))}
-        </ol>
-
-        {known.length === legs.length && (
-          <p className="rounded-lg bg-muted p-3 text-sm">
-            <strong>Total:</strong> {km(total.d)}, about {minutes(total.s)} {verb}. Indicative, from OpenStreetMap paths.
-          </p>
-        )}
-
-        <WalkButtons stops={stops} onOpened={onOpened} />
-
-        <div className="border-t pt-3">
-          <Button variant="outline" disabled>
-            Email my plan
-          </Button>
-          <p className="mt-1 text-xs text-muted-foreground">Coming soon.</p>
-        </div>
+    <div className="space-y-4">
+      <div role="group" aria-label="How you'll travel" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm">
+        {([["walking", "Walk"], ["cycling", "Cycle"]] as const).map(([m, label]) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={mode === m}
+            onClick={() => setMode(m)}
+            className={`rounded-md py-1.5 font-medium ${mode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+
+      <ol className="space-y-1">
+        {stops.map((s, i) => (
+          <li key={s.id}>
+            <div className="flex items-center gap-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                {i + 1}
+              </span>
+              <SiteThumb image={images[s.id]} className="size-12" />
+              <span className="min-w-0 text-sm">
+                <span className="block font-medium">{s.name}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{s.suburb}</span>
+              </span>
+              <span className="ml-auto shrink-0">
+                {onViewSite ? (
+                  <Button variant="outline" size="sm" data-track="plan-view-site" onClick={() => onViewSite(s.id)}>
+                    View site
+                  </Button>
+                ) : linkSites ? (
+                  <Link href={`/sites/${s.id}`} data-track="plan-view-site" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    View site
+                  </Link>
+                ) : null}
+              </span>
+            </div>
+            {i < legs.length && (
+              <p className="ml-3 border-l-2 border-dashed py-2 pl-6 text-xs text-muted-foreground">
+                {legs[i] ? `${km(legs[i]!.distanceM)}, ${minutes(legs[i]!.durationS)} ${verb}` : "Distance not available"}
+              </p>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {known.length === legs.length && (
+        <p className="rounded-lg bg-muted p-3 text-sm">
+          <strong>Total:</strong> {km(total.d)}, about {minutes(total.s)} {verb}. Indicative, from OpenStreetMap paths.
+        </p>
+      )}
+
+      <WalkButtons stops={stops} onOpened={onOpened} />
+      <ShareButtons stops={stops} />
     </div>
   );
 }
+

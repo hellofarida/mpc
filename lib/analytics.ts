@@ -15,7 +15,7 @@ export const STEP_LABELS: Record<string, string> = {
   log_tap: "Log sighting",
   join_tap: "Join / Volunteer",
 };
-const PAGE_LABELS: Record<string, string> = { home: "Map (home)", about: "About", "get-involved": "Get involved", privacy: "Privacy", other: "Other page" };
+const PAGE_LABELS: Record<string, string> = { home: "Map (home)", about: "About", "get-involved": "Get involved", privacy: "Privacy", plan: "Plan page", other: "Other page" };
 const STATES: Record<string, string> = { VIC: "Victoria", NSW: "New South Wales", QLD: "Queensland", SA: "South Australia", WA: "Western Australia", TAS: "Tasmania", ACT: "Australian Capital Territory", NT: "Northern Territory" };
 const isHome = (e: EventRow) => e.event === "page_open" && (!e.detail || e.detail === "home");
 const TZ = "Australia/Melbourne";

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { PlanModal, WalkButtons } from "@/components/plan-modal";
+import { PlanView } from "@/components/plan-modal";
 import { Button } from "@/components/ui/button";
 import { SiteThumb } from "@/components/site-thumb";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,12 +23,12 @@ const SLIDE_MS = 200;
 
 export function Home({ sites, route, images, details }: { sites: Site[]; route: RouteFile; images: Record<string, SiteImage>; details: Record<string, ReactNode> }) {
   const [mode, setMode] = useState<Mode>("search");
-  const [planOpen, setPlanOpen] = useState(false); // the "View plan" modal
   // Slide-out panels, oldest first. Opening another site slides the open panel back under the list as the new one slides out.
   const [layers, setLayers] = useState<Layer[]>([]);
   const top = layers[layers.length - 1];
   const selected = top?.open ? top.id : null;
   const [picked, setPicked] = useState<string[]>([]);
+  const [planView, setPlanView] = useState(false); // Plan tab, step 2: the plan replaces the list of sites
   const [routeMode, setRouteMode] = useState<RouteMode>("off");
   const autoRoute = useRef(false); // true while the route line is on only because 2+ sites are picked in plan mode
   const layerKey = useRef(0);
@@ -113,7 +113,10 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
   }
 
   function changeMode(m: Mode) {
-    if (m !== "plan") logAbandon(mode, picked);
+    if (m !== "plan") {
+      logAbandon(mode, picked);
+      setPlanView(false);
+    }
     setMode(m);
     syncRoute(picked.length, m);
   }
@@ -122,6 +125,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
     const next = picked.includes(id) ? picked.filter((x) => x !== id) : picked.length < MAX_STOPS ? [...picked, id] : picked;
     setPicked(next);
     syncRoute(next.length, mode);
+    if (next.length < MIN_STOPS) setPlanView(false);
     if (next.length < MIN_STOPS) {
       walkOpened.current = false;
       abandonLogged.current = false;
@@ -138,6 +142,7 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
   function clearAll() {
     setPicked([]);
     syncRoute(0, mode);
+    setPlanView(false);
     walkOpened.current = false;
     abandonLogged.current = false;
   }
@@ -186,24 +191,47 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
               </button>
             ))}
           </div>
-          {mode === "plan" && (
-            <p className="text-sm" role="status">
-              {picked.length < MIN_STOPS
-                ? `Pick ${MIN_STOPS} to ${MAX_STOPS} sites for your walk.`
-                : `Ready: view your plan or open it in a maps app below.`}
-            </p>
+          {mode === "plan" && planView && ready && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                data-track="plan-back"
+                onClick={() => setPlanView(false)}
+                aria-label="Back to picking sites"
+                className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-lg hover:bg-muted"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 10H4M9 5l-5 5 5 5" />
+                </svg>
+              </button>
+              <div>
+                <h2 className="text-lg font-semibold">Your plan</h2>
+                <p className="text-sm">{stops.length} stops, west to east</p>
+              </div>
+            </div>
+          )}
+          {mode === "plan" && !(planView && ready) && (
+            <div>
+              <h2 className="text-lg font-semibold">Plan your journey</h2>
+              <p className="text-sm">
+                Pick {MIN_STOPS} to {MAX_STOPS} sites for your walk.
+              </p>
+            </div>
           )}
         </div>
 
+        {mode === "plan" && planView && ready ? (
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <PlanView stops={stops} route={route} images={images} onOpened={() => (walkOpened.current = true)} onViewSite={(id) => open(id)} />
+          </div>
+        ) : (
+          <>
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pt-2 text-xs text-muted-foreground">
           <span>
             {plural(mainSites.reduce((n, s) => n + s.gardens, 0), "garden")} across the {mainSites.length} main sites
           </span>
           {mode === "plan" && (
             <span className="flex items-center gap-3 whitespace-nowrap">
-              <span>
-                {picked.length} selected{mainSites.length > MAX_STOPS ? ` (max ${MAX_STOPS})` : ""}
-              </span>
               <button type="button" data-track="select-all" className="underline" onClick={selectAll}>
                 Select all
               </button>
@@ -233,8 +261,15 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
           )}
         </ul>
 
-        {mode === "plan" && ready && (
-          <PlanBar stops={stops} onView={() => setPlanOpen(true)} onOpened={() => (walkOpened.current = true)} />
+        {mode === "plan" && (
+          <div className="flex items-center justify-between gap-3 border-t bg-background p-3 text-sm">
+            <span role="status">{picked.length} selected</span>
+            <Button data-track="view-plan" disabled={!ready} onClick={() => setPlanView(true)}>
+              View plan
+            </Button>
+          </div>
+        )}
+          </>
         )}
       </aside>
 
@@ -302,7 +337,6 @@ export function Home({ sites, route, images, details }: { sites: Site[]; route: 
           <div className="min-h-0 flex-1 overflow-y-auto">{details[l.id]}</div>
         </section>
       ))}
-      {planOpen && ready && <PlanModal stops={stops} route={route} images={images} onClose={() => setPlanOpen(false)} onOpened={() => (walkOpened.current = true)} />}
     </div>
   );
 }
@@ -354,17 +388,5 @@ function SiteCard({
         </button>
       )}
     </li>
-  );
-}
-
-function PlanBar({ stops, onView, onOpened }: { stops: Site[]; onView: () => void; onOpened: () => void }) {
-  return (
-    <div className="space-y-2 border-t bg-background p-3 text-sm">
-      <p>Order: {stops.map((s) => s.name).join(" → ")}</p>
-      <Button variant="outline" onClick={onView} data-track="view-plan">
-        View plan
-      </Button>
-      <WalkButtons stops={stops} onOpened={onOpened} />
-    </div>
   );
 }

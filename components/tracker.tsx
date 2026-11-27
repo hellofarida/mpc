@@ -26,7 +26,7 @@ function pageSlug(pathname: string): string | null {
   if (pathname === "/") return "home";
   if (pathname.startsWith("/sites/")) return null;
   const slug = pathname.slice(1).replace(/[^a-z0-9-]/g, "");
-  return ["about", "get-involved", "privacy"].includes(slug) ? slug : "other";
+  return ["about", "get-involved", "privacy", "plan"].includes(slug) ? slug : "other";
 }
 
 /** Approximate area of this visit (see app/api/geo/route.ts). Gives up quietly after 2 seconds. */
