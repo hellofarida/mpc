@@ -6,7 +6,7 @@ import { DirectionsButtons } from "@/components/directions-buttons";
 import { LeaveLink } from "@/components/leave-link";
 import { JoinButtons, LogSightingButton } from "@/components/link-buttons";
 import { GardenViewLogger } from "@/components/view-logger";
-import { getSightingsFile, getSite, getSummaries } from "@/lib/content";
+import { getSightingsFile, getSite, getSites, getSummaries } from "@/lib/content";
 import { siteCentre } from "@/lib/sites";
 import { computeFacts } from "@/lib/facts";
 import { getSummary } from "@/lib/summary";
@@ -19,7 +19,7 @@ export async function GardenDetail({ id }: { id: string }) {
   if (!site) notFound();
 
   const centre = siteCentre(site);
-  const [data, summaries] = await Promise.all([getSightingsFile(), getSummaries()]);
+  const [data, summaries, allSites] = await Promise.all([getSightingsFile(), getSummaries(), getSites()]);
   const summary = getSummary(site, computeFacts(site.id, data), summaries[site.id]);
   const sightings = data.sightings
     .filter((s) => s.siteId === site.id)
@@ -70,7 +70,7 @@ export async function GardenDetail({ id }: { id: string }) {
       </CardContent>
     </Card>
 
-    <CheckInCard siteId={site.id} />
+    <CheckInCard siteId={site.id} sites={allSites.map((s) => ({ id: s.id, name: s.name }))} />
 
     <Card>
       <CardHeader>

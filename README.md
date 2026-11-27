@@ -7,8 +7,9 @@ A mobile web guide to the Melbourne Pollinator Corridor's 8 main sites, built on
 2. Copy `.env.example` to `.env.local` and fill in the Supabase URL, publishable key and (server-only) Anthropic API key.
 3. In Supabase: **SQL Editor → New query**, paste `supabase/migrations/001_checkins_and_events.sql`, **Run**.
 4. Then run `supabase/migrations/002_content_tables.sql` the same way (gardens, sightings, summaries tables, public read-only), add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Supabase > Project settings > API; a secret, never `NEXT_PUBLIC_`, never in the browser) and run `npm run db:seed` once to load the saved files.
-5. `npm run test:db` checks the database rules with the public key (all lines should say PASS).
-6. `npm run dev`
+5. Phase 2: run `supabase/migrations/003_checkin_details_and_analytics.sql` the same way **before deploying the Phase 2 code** (events now carry a session id and placement, and the app calls `checkin_details`).
+6. `npm run test:db` checks the database rules with the public key (all lines should say PASS).
+7. `npm run dev`
 
 ## Data
 The app reads gardens, sightings and summaries from the database (public read-only tables). The files in `data/` are the seed and the offline fallback (used for a minute if the database can't be reached) and the fixtures for the tests. `npm run sightings` and `npm run summaries` write the files and, when `SUPABASE_SERVICE_ROLE_KEY` is set, the database too.
@@ -19,6 +20,12 @@ The app reads gardens, sightings and summaries from the database (public read-on
 
 ## Weekly refresh
 `npm run refresh` fetches new sightings, saves them to the database and rewrites the summary of any garden whose sightings changed (AI words it, code checks it, template fallback). `-- --dry-run` only looks; `-- --no-ai` uses templates. It also runs by itself every Monday morning (Melbourne) on GitHub Actions (`.github/workflows/weekly-refresh.yml`; you can also run it from the Actions tab). Add three repository secrets first (GitHub: Settings > Secrets and variables > Actions): `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`. The site picks up new data within the hour. A failed run emails you from GitHub.
+
+## Fuller check-in and analytics (Phase 2)
+- After the one-tap check-in, visitors may pick a favourite garden and add a one-line comment. It is **on in development and off in production** until Heartscapes agree who owns this data and how long it's kept: set `NEXT_PUBLIC_FULL_CHECKIN=on` and redeploy to switch it on (`lib/flags.ts`). Comments can't be read by visitors, never reach the chatbot, and the database rejects emails, links and phone numbers.
+- Analytics are our own anonymous events (no cookies, no third-party script): each visit gets a random id kept only in the browser tab. Join and Volunteer links carry UTM tags (`utm_content` = which button, `utm_term` = which garden).
+- `npm run analytics:report [-- --since 2026-12-01] [-- --open]` writes a self-contained chart page, `reports/analytics.html` (gitignored, stays on your computer): pilot targets, journey funnel, where visits ended, possible friction, common paths, timing, per-garden figures, visits by day and hour, check-ins. No device ids or comment text. Needs the service key.
+- `npm run analytics [-- --since 2026-12-01] [-- --comments]` prints the pilot numbers (visits, garden opens, Log/Join taps, check-ins, estimated arrivals, favourite gardens) against the PRD targets. Needs the service key.
 
 ## Clean-up
 `npm run test:db` adds a test check-in and test events from device `00000000-0000-4000-8000-000000007e57`. Remove them in the SQL Editor:

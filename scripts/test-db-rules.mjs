@@ -30,4 +30,10 @@ x = await sb.from("sites").update({ name: "hacked" }).eq("id", site).select(); t
 x = await sb.from("sightings").delete().neq("id", 0).select(); t("can't delete sightings", !!x.error || x.data.length === 0, x.error?.message ?? `${x.data?.length} rows`);
 x = await sb.from("summaries").update({ text: "hacked" }).eq("site_id", site).select(); t("can't edit a summary", !!x.error || x.data.length === 0, x.error?.message ?? `${x.data?.length} rows`);
 x = await sb.from("corridor_meta").update({ source: "hacked" }).eq("id", 1).select(); t("can't edit corridor_meta", !!x.error || x.data.length === 0, x.error?.message ?? `${x.data?.length} rows`);
+// fuller check-in (003): details only for your own recent check-in, once, and never personal-looking text
+x = await sb.rpc("checkin_details", { p_site_id: site, p_device_id: "00000000-0000-4000-8000-0000000000dd", p_favourite_site_id: "101-cobden-st", p_comment: "hi" }); t("details need a recent check-in of your own (003)", x.data === false, x.error?.message ?? String(x.data));
+x = await sb.rpc("checkin_details", { p_site_id: site, p_device_id: dev, p_favourite_site_id: null, p_comment: "email me at a@b.com" }); t("details with an email are refused or ignored (003)", !!x.error || x.data === false, x.error?.message ?? String(x.data));
+x = await sb.from("checkins").select("comment"); t("can't read comments", !!x.error || x.data.length === 0, x.error?.message ?? `${x.data.length} rows`);
+x = await sb.from("events").insert({ event: "page_open", device_id: dev, session_id: crypto.randomUUID(), placement: "garden-join" }); t("event with session and placement (003)", !x.error, x.error?.message);
+x = await sb.from("events").insert({ event: "page_open", device_id: dev, placement: "Bad Tag!" }); t("reject a bad placement tag (003)", !!x.error, x.error?.message);
 console.log(r.join("\n"));

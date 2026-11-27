@@ -2,7 +2,7 @@
 
 import { LeaveLink } from "@/components/leave-link";
 import { logEvent } from "@/lib/events";
-import { HEARTSCAPES_JOIN_URL, HEARTSCAPES_VOLUNTEER_URL, INAT_UPLOAD_URL } from "@/lib/links";
+import { heartscapesJoinUrl, heartscapesVolunteerUrl, INAT_UPLOAD_URL } from "@/lib/links";
 
 export function LogSightingButton({ siteId }: { siteId?: string }) {
   return (
@@ -18,19 +18,20 @@ export function LogSightingButton({ siteId }: { siteId?: string }) {
 }
 
 export function JoinButtons({ siteId }: { siteId?: string }) {
+  const where = siteId ? "garden" : "page"; // on a garden's page, or on the Get involved page
   return (
     <div className="flex flex-wrap gap-2">
       <LeaveLink
-        href={HEARTSCAPES_JOIN_URL}
+        href={heartscapesJoinUrl(`${where}-join`, siteId)}
         destination="Heartscapes (membership)"
-        onContinue={() => logEvent("join_tap", { siteId })}
+        onContinue={() => logEvent("join_tap", { siteId, placement: `${where}-join` })}
       >
         Join Heartscapes
       </LeaveLink>
       <LeaveLink
-        href={HEARTSCAPES_VOLUNTEER_URL}
+        href={heartscapesVolunteerUrl(`${where}-volunteer`, siteId)}
         destination="Heartscapes (volunteering)"
-        onContinue={() => logEvent("join_tap", { siteId })}
+        onContinue={() => logEvent("join_tap", { siteId, placement: `${where}-volunteer` })}
       >
         Volunteer
       </LeaveLink>

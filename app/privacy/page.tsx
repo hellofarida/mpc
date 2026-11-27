@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FULL_CHECKIN } from "@/lib/flags";
 
 export const metadata: Metadata = { title: "Privacy – MPC guide" };
 
@@ -29,6 +30,17 @@ export default function PrivacyPage() {
           <li>
             Simple step events (for example opening a garden, tapping Directions, or opening a walk): the event,
             the garden, the time and your device ID.
+          </li>
+          {FULL_CHECKIN && (
+            <li>
+              If you choose to, your favourite garden and one short line about your visit, saved with that check-in.
+              Comments are only read by the project team, are never shown publicly and are never quoted by the chatbot.
+              Please don&apos;t put names, contact details or links in them (we block emails, links and phone numbers).
+            </li>
+          )}
+          <li>
+            A random ID for each visit, kept only in your browser tab (not a cookie) and gone when you close it. It lets
+            us count visits and see how far people got, for example how many opened a garden.
           </li>
           <li>We do not store your name, email, or location.</li>
         </ul>
@@ -73,7 +85,7 @@ export default function PrivacyPage() {
       <section className="space-y-1">
         <h2 className="text-base font-semibold">Cookies and third parties</h2>
         <p>
-          No cookies and no third-party scripts, ads or tracking. The map tiles come from OpenStreetMap, so that
+          No cookies and no third-party scripts, ads or tracking. We count visits ourselves, with the anonymous steps above. The Join and Volunteer buttons open Heartscapes with a tag in the link (the button and garden you came from, and &quot;mpc-guide&quot;), so Heartscapes can see how many people came from this guide. The tag says nothing about you. The map tiles come from OpenStreetMap, so that
           service sees your device&apos;s IP address when the map loads.
         </p>
       </section>

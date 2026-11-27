@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Trial fonts (licence forbids public distribution)
 /app/fonts/
+
+# Local analytics reports (anonymous, but keep them on this computer)
+/reports/

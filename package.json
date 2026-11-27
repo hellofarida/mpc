@@ -15,6 +15,8 @@
     "test:facts": "tsx scripts/check-facts.ts",
     "test:chat": "tsx scripts/check-chat.ts",
     "route": "tsx scripts/route.ts",
+    "analytics": "node --env-file=.env.local node_modules/.bin/tsx scripts/analytics.ts",
+    "analytics:report": "node --env-file=.env.local node_modules/.bin/tsx scripts/analytics-report.ts",
     "refresh": "node --env-file=.env.local node_modules/.bin/tsx scripts/refresh.ts",
     "db:seed": "node --env-file=.env.local node_modules/.bin/tsx scripts/db-seed.ts",
     "eval:chat": "node --env-file=.env.local node_modules/.bin/tsx scripts/eval-chat.ts",
