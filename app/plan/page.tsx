@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { BeeSpinner } from "@/components/bee-spinner";
 import { PlanView } from "@/components/plan-modal";
 import { getSites } from "@/lib/content";
 import type { RouteFile } from "@/lib/route";
@@ -14,7 +15,7 @@ export const metadata: Metadata = { title: "Your plan – MPC guide", robots: { 
 
 export default function PlanPage({ searchParams }: { searchParams: Promise<{ stops?: string | string[] }> }) {
   return (
-    <Suspense fallback={<p className="p-4 text-sm">Loading…</p>}>
+    <Suspense fallback={<BeeSpinner />}>
       <Plan searchParams={searchParams} />
     </Suspense>
   );

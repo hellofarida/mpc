@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { BeeSpinner } from "@/components/bee-spinner";
 import { GardenDetail } from "@/components/garden-detail";
 import { getSites } from "@/lib/content";
 
@@ -9,7 +10,7 @@ export async function generateStaticParams() {
 
 export default function GardenPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<p className="p-4 text-sm">Loading…</p>}>
+    <Suspense fallback={<BeeSpinner />}>
       <Garden params={params} />
     </Suspense>
   );

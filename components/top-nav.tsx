@@ -3,15 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Modal } from "@/components/modal";
 
-const LINKS = [
-  { href: "/about", label: "About" },
-  { href: "/get-involved", label: "Get involved" },
+type Panel = "about" | "involved";
+const LINKS: { id: Panel; label: string }[] = [
+  { id: "about", label: "About" },
+  { id: "involved", label: "Get involved" },
 ];
 
-export function TopNav() {
+/** About and Get involved open as pop-ups over the page (their own pages still work as direct links). */
+export function TopNav({ about, involved }: { about: React.ReactNode; involved: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const home = usePathname() === "/"; // on the map page (desktop) the nav floats over the map, right of the list panel
+  const path = usePathname();
+  // Remember which page the pop-up was opened on: following a link inside it moves to another page, which closes it.
+  const [opened, setOpened] = useState<{ id: Panel; at: string } | null>(null);
+  const panel = opened && opened.at === path ? opened.id : null;
+  const setPanel = (id: Panel | null) => setOpened(id ? { id, at: path } : null);
+  const show = (p: Panel) => {
+    setOpen(false);
+    setPanel(p);
+  };
+  const home = path === "/"; // on the map page (desktop) the nav floats over the map, right of the list panel
 
   return (
     <header
@@ -25,10 +37,10 @@ export function TopNav() {
         </Link>
         <ul className="hidden items-center gap-6 text-sm md:flex">
           {LINKS.map((l) => (
-            <li key={l.href}>
-              <Link href={l.href} className="hover:underline" onClick={() => setOpen(false)}>
+            <li key={l.id}>
+              <button type="button" className="hover:underline" onClick={() => show(l.id)}>
                 {l.label}
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
@@ -48,13 +60,28 @@ export function TopNav() {
       {open && (
         <ul id="main-menu" className="absolute inset-x-0 top-full divide-y border-b bg-background px-4 text-sm shadow-md md:hidden">
           {LINKS.map((l) => (
-            <li key={l.href}>
-              <Link href={l.href} className="block py-3" onClick={() => setOpen(false)}>
+            <li key={l.id}>
+              <button type="button" className="block w-full py-3 text-left" onClick={() => show(l.id)}>
                 {l.label}
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
+      )}
+      {panel && (
+        <Modal label={panel === "about" ? "About" : "Get involved"} onClose={() => setPanel(null)}>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setPanel(null)}
+            className="float-right -mr-1 -mt-1 flex size-8 items-center justify-center rounded-full hover:bg-muted"
+          >
+            <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M4 4l12 12M16 4L4 16" />
+            </svg>
+          </button>
+          {panel === "about" ? about : involved}
+        </Modal>
       )}
     </header>
   );

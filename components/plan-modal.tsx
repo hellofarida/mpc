@@ -57,13 +57,16 @@ export function WalkButtons({ stops, onOpened }: { stops: Site[]; onOpened: () =
  */
 export function ShareButtons({ stops }: { stops: Site[] }) {
   const [note, setNote] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const link = () => `${window.location.origin}/plan?stops=${stops.map((s) => s.id).join(",")}`;
   const summary = () => `My walk through the Melbourne Pollinator Corridor: ${stops.map((s) => s.name).join(", then ")}.`;
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(link());
-      setNote("Link copied.");
+      setNote(null);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
     } catch {
       setNote("Couldn't copy. Long-press the address bar to copy the link.");
     }
@@ -85,8 +88,8 @@ export function ShareButtons({ stops }: { stops: Site[] }) {
         <Button data-track="plan-share" onClick={share}>
           Share
         </Button>
-        <Button variant="outline" data-track="plan-copy" onClick={copy}>
-          Copy link
+        <Button variant="outline" data-track="plan-copy" onClick={copy} disabled={copied}>
+          {copied ? "Copied!" : "Copy link"}
         </Button>
         <Button
           variant="outline"
