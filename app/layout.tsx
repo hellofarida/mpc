@@ -3,7 +3,6 @@ import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { TopNav } from "@/components/top-nav";
 import { Tracker } from "@/components/tracker";
-import { SiteFooter } from "@/components/site-footer";
 
 const instrumentSans = Instrument_Sans({
   variable: "--font-instrument-sans",
@@ -25,7 +24,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Tracker />
         <TopNav />
         {children}
-        <SiteFooter />
       </body>
     </html>
   );
