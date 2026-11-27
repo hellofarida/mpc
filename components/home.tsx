@@ -145,6 +145,7 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
     .filter(({ s }) => mode === "plan" || !q || `${s.name} ${s.suburb}`.toLowerCase().includes(q))
     .sort((a, b) => (a.d !== null && b.d !== null ? a.d - b.d : a.s.number - b.s.number));
 
+  const mainSites = sites.filter((s) => s.kind !== "scattered");
   const stops = sortWestToEast(sites.filter((s) => picked.includes(s.id)));
   const ready = stops.length >= MIN_STOPS && stops.length <= MAX_STOPS;
   // Plan mode with 2+ sites picked: draw only the path through those sites, not the whole corridor.
@@ -200,6 +201,9 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
           </div>
         </div>
 
+        <p className="px-3 pt-2 text-xs text-muted-foreground">
+          {plural(mainSites.reduce((n, s) => n + s.gardens, 0), "garden")} across the {mainSites.length} main sites
+        </p>
         <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
           {list.length === 0 && <li className="text-sm text-muted-foreground">No sites match that search.</li>}
           {list.map(({ s, d }) => (
@@ -291,6 +295,8 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
   );
 }
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 function SiteCard({
   site,
   distance,
@@ -319,6 +325,7 @@ function SiteCard({
         {site.suburb}
         {dist ? ` · ${dist}` : ""}
       </span>
+      <span className="block text-xs text-muted-foreground">{site.gardensNote ?? plural(site.gardens, "garden")}</span>
     </>
   );
   return (

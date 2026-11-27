@@ -20,6 +20,7 @@ export const siteFromRow = (r: SiteRow): Site => ({
   id: r.id, number: r.number, name: r.name, suburb: r.suburb, gardens: r.gardens,
   ...(r.gardens_note ? { gardensNote: r.gardens_note } : {}),
   areaM2: r.area_m2,
+  ...(r.kind === "scattered" ? { kind: "scattered" as const } : {}),
   ...(r.note ? { note: r.note } : {}),
   addresses: r.addresses,
 });

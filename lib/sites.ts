@@ -10,6 +10,7 @@ export type Site = {
   gardens: number;
   gardensNote?: string;
   areaM2: number;
+  kind?: "main" | "scattered"; // missing = main
   note?: string;
   addresses: Address[];
 };
