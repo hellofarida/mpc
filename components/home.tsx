@@ -8,7 +8,8 @@ import { SiteThumb } from "@/components/site-thumb";
 import { Checkbox } from "@/components/ui/checkbox";
 import { logEvent } from "@/lib/events";
 import { chosenPath, km, minutes, type RouteFile, type RouteMode } from "@/lib/route";
-import { sortWestToEast, type Site } from "@/lib/sites";
+import type { SiteImage } from "@/lib/site-images";
+import { GENERAL_NOTE, sortWestToEast, type Site } from "@/lib/sites";
 import { MAX_STOPS, MIN_STOPS } from "@/lib/walk";
 
 const SiteMap = dynamic(() => import("@/components/site-map"), {
@@ -20,7 +21,7 @@ type Mode = "search" | "plan";
 type Layer = { key: number; id: string; open: boolean };
 const SLIDE_MS = 200;
 
-export function Home({ sites, route, details }: { sites: Site[]; route: RouteFile; details: Record<string, ReactNode> }) {
+export function Home({ sites, route, images, details }: { sites: Site[]; route: RouteFile; images: Record<string, SiteImage>; details: Record<string, ReactNode> }) {
   const [mode, setMode] = useState<Mode>("search");
   const [planOpen, setPlanOpen] = useState(false); // the "View plan" modal
   // Slide-out panels, oldest first. Opening another site slides the open panel back under the list as the new one slides out.
@@ -30,7 +31,6 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
   const [picked, setPicked] = useState<string[]>([]);
   const [routeMode, setRouteMode] = useState<RouteMode>("off");
   const autoRoute = useRef(false); // true while the route line is on only because 2+ sites are picked in plan mode
-  const opened = useRef(false);
   const layerKey = useRef(0);
   const panelOpenedAt = useRef<{ id: string; at: number } | null>(null); // for "opened and closed within 2 s"
   const recentOpens = useRef<{ id: string; at: number }[]>([]); // for "opened 3 different sites within 15 s"
@@ -39,12 +39,6 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
   const latest = useRef({ mode: "search" as Mode, picked: [] as string[] });
   const cleanup = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelEntry = useRef(false); // true while the open panel has its own history entry
-
-  useEffect(() => {
-    if (opened.current) return;
-    opened.current = true;
-    logEvent("page_open");
-  }, []);
 
   // The panel gets a history entry when it opens, so the Back button closes it instead of leaving the page.
   useEffect(() => {
@@ -224,6 +218,7 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
             <SiteCard
               key={s.id}
               site={s}
+              image={images[s.id]}
               mode={mode}
               active={selected === s.id}
               checked={picked.includes(s.id)}
@@ -231,6 +226,11 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
               onChoose={() => onSiteChosen(s.id)}
             />
           ))}
+          {sites.some((s) => s.note === GENERAL_NOTE) && (
+            <li role="note" className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+              {GENERAL_NOTE}
+            </li>
+          )}
         </ul>
 
         {mode === "plan" && ready && (
@@ -288,23 +288,21 @@ export function Home({ sites, route, details }: { sites: Site[]; route: RouteFil
               : "invisible translate-x-full md:-translate-x-full"
           }`}
         >
-          <div className="flex items-center border-b p-2">
-            <button
-              type="button"
-              data-track="panel-close"
-              onClick={closePanel}
-              aria-label="Back to the list of sites"
-              className="flex size-9 items-center justify-center rounded-lg hover:bg-muted"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 10H4M9 5l-5 5 5 5" />
-              </svg>
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">{details[l.id]}</div>
+          <button
+            type="button"
+            data-track="panel-close"
+            onClick={closePanel}
+            aria-label="Close site details"
+            className="absolute right-3 top-3 z-20 flex size-10 items-center justify-center rounded-full bg-white text-black shadow-md hover:bg-neutral-100"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M4 4l12 12M16 4L4 16" />
+            </svg>
+          </button>
+          <div className="min-h-0 flex-1 overflow-y-auto">{details[l.id]}</div>
         </section>
       ))}
-      {planOpen && ready && <PlanModal stops={stops} route={route} onClose={() => setPlanOpen(false)} onOpened={() => (walkOpened.current = true)} />}
+      {planOpen && ready && <PlanModal stops={stops} route={route} images={images} onClose={() => setPlanOpen(false)} onOpened={() => (walkOpened.current = true)} />}
     </div>
   );
 }
@@ -313,6 +311,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 function SiteCard({
   site,
+  image,
   mode,
   active,
   checked,
@@ -320,6 +319,7 @@ function SiteCard({
   onChoose,
 }: {
   site: Site;
+  image?: SiteImage;
   mode: Mode;
   active: boolean;
   checked: boolean;
@@ -328,15 +328,15 @@ function SiteCard({
 }) {
   const body = (
     <>
-      <SiteThumb />
-      <span className="min-w-0 flex-1">
+      <SiteThumb image={image} className="size-auto min-h-24 w-24 self-stretch rounded-none" />
+      <span className="min-w-0 flex-1 p-3">
         <span className="block font-medium">{site.name}</span>
         <span className="mt-1 block text-xs text-muted-foreground">{site.suburb}</span>
         <span className="mt-0.5 block text-xs text-muted-foreground">{site.gardensNote ?? plural(site.gardens, "garden")}</span>
       </span>
     </>
   );
-  const card = `flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm ${
+  const card = `flex w-full items-stretch overflow-hidden rounded-xl border text-left text-sm ${
     active || (mode === "plan" && checked) ? "border-primary bg-muted" : "hover:bg-muted/50"
   }`;
   return (
@@ -344,7 +344,9 @@ function SiteCard({
       {mode === "plan" ? (
         <label data-track="plan-pick" className={`${card} cursor-pointer`}>
           {body}
-          <Checkbox checked={checked} disabled={disabled} onCheckedChange={onChoose} />
+          <span className="flex items-center pr-3">
+            <Checkbox checked={checked} disabled={disabled} onCheckedChange={onChoose} />
+          </span>
         </label>
       ) : (
         <button type="button" data-track="site-card" onClick={onChoose} className={card}>

@@ -31,6 +31,9 @@ export type EventExtras = {
   placement?: string; // where a tap happened, e.g. "garden-join" (lowercase letters, digits, dashes)
   detail?: string; // a short fixed code, e.g. "site-card" or "geo-denied": never free text
   value?: number; // a small number, e.g. milliseconds
+  country?: string; // visit_info only: approximate area of the connection (state and city only for Australia)
+  region?: string;
+  city?: string;
 };
 
 // ---------- batching: events wait in a small queue and go in ONE request ----------
@@ -42,7 +45,8 @@ const COUNT_KEY = "mpc-event-count";
 
 type Row = {
   event: EventName; site_id: string | null; maps_app: string | null; stops: string[] | null; placement: string | null;
-  detail: string | null; value: number | null; device_id: string; session_id: string;
+  detail: string | null; value: number | null; country: string | null; region: string | null; city: string | null;
+  device_id: string; session_id: string;
 };
 let queue: Row[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -108,10 +112,13 @@ export function logEvent(event: EventName, extras: EventExtras = {}): void {
     placement: extras.placement ?? null,
     detail: extras.detail ?? null,
     value: extras.value === undefined ? null : Math.max(0, Math.min(3_600_000, Math.round(extras.value))),
+    country: extras.country ?? null,
+    region: extras.region ?? null,
+    city: extras.city ?? null,
     device_id: getDeviceId(),
     session_id: getSessionId(),
   });
-  if (n + 1 === MAX_PER_VISIT) queue.push({ ...queue[queue.length - 1], event: "error", site_id: null, maps_app: null, stops: null, placement: null, detail: "event-cap", value: MAX_PER_VISIT });
+  if (n + 1 === MAX_PER_VISIT) queue.push({ ...queue[queue.length - 1], event: "error", site_id: null, maps_app: null, stops: null, placement: null, detail: "event-cap", value: MAX_PER_VISIT, country: null, region: null, city: null });
   if (queue.length >= FLUSH_AT) flushEvents();
   else timer ??= setTimeout(flushEvents, FLUSH_AFTER_MS);
 }

@@ -1,0 +1,50 @@
+{
+ "south-melbourne-bee-gardens": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/666982697/small.jpg",
+  "plant": "Victorian Silver Gum",
+  "credit": "(c) restlessrook, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/365320545"
+ },
+ "101-cobden-st": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/666973233/small.jpg",
+  "plant": "Drooping She-oak",
+  "credit": "(c) restlessrook, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/365316162"
+ },
+ "napier-st-gardens": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/666974529/small.jpg",
+  "plant": "Twiggy Daisy-Bush",
+  "credit": "(c) restlessrook, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/365316789"
+ },
+ "bank-st-1st-site": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/467973435/small.jpg",
+  "plant": "Lacebark",
+  "credit": "(c) finnod, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/260571576"
+ },
+ "bank-st-2nd-site": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/342142188/small.jpg",
+  "plant": "silver senna",
+  "credit": "(c) megafaunaoz, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/194616766"
+ },
+ "st-martins-youth-arts-centre": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/278773766/small.jpeg",
+  "plant": "Water Gum",
+  "credit": "(c) Mikey Chanthaphoree, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/161288607"
+ },
+ "melbourne-grammar-wadhurst": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/448766328/small.jpeg",
+  "plant": "kidney weed",
+  "credit": "(c) Pascale Jacq, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/250870755"
+ },
+ "port-melbourne-primary": {
+  "url": "https://inaturalist-open-data.s3.amazonaws.com/photos/601142064/small.jpg",
+  "plant": "Common Everlasting",
+  "credit": "(c) brett213, some rights reserved (CC BY-NC)",
+  "observationUrl": "https://www.inaturalist.org/observations/331379864"
+ }
+}

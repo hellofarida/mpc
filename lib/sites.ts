@@ -15,6 +15,9 @@ export type Site = {
   addresses: Address[];
 };
 
+/** Shown once at the bottom of the site list instead of on each site's panel. */
+export const GENERAL_NOTE = "Neighbouring residents' street gardens aren't part of the corridor. Look for the MPC signs.";
+
 export const SITES: Site[] = sitesData.sites;
 
 export const SITE_IDS = SITES.map((s) => s.id);

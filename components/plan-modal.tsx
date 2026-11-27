@@ -5,6 +5,7 @@ import { SiteThumb } from "@/components/site-thumb";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { logEvent } from "@/lib/events";
 import { km, minutes, type RouteFile } from "@/lib/route";
+import type { SiteImage } from "@/lib/site-images";
 import type { Site } from "@/lib/sites";
 import { buildAppleWalkUrl, buildGoogleWalkUrl } from "@/lib/walk";
 
@@ -50,7 +51,7 @@ export function WalkButtons({ stops, onOpened }: { stops: Site[]; onOpened: () =
 }
 
 /** The chosen walk in one place: stops in order, the distance and time between them, and ways to take it with you. */
-export function PlanModal({ stops, route, onClose, onOpened }: { stops: Site[]; route: RouteFile; onClose: () => void; onOpened: () => void }) {
+export function PlanModal({ stops, route, images, onClose, onOpened }: { stops: Site[]; route: RouteFile; images: Record<string, SiteImage>; onClose: () => void; onOpened: () => void }) {
   const [mode, setMode] = useState<"walking" | "cycling">("walking");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -105,7 +106,7 @@ export function PlanModal({ stops, route, onClose, onOpened }: { stops: Site[]; 
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                   {i + 1}
                 </span>
-                <SiteThumb className="size-12" />
+                <SiteThumb image={images[s.id]} className="size-12" />
                 <span className="min-w-0 text-sm">
                   <span className="block font-medium">{s.name}</span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">{s.suburb}</span>

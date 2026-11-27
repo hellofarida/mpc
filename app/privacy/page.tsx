@@ -48,7 +48,19 @@ export default function PrivacyPage() {
             garden and closing it straight away, cancelling the &quot;You&apos;re leaving&quot; box, or a question the chatbot couldn&apos;t answer (the kind of question, never the words). We also note
             whether you&apos;re on a phone, tablet or computer, and sometimes how fast the page loaded.
           </li>
-          <li>We do not store your name, email, or location, and never what you type, where you tap on the screen, or what is on your screen.</li>
+          <li>
+            Which page you looked at (for example the map, or a garden), so we can count visits. And roughly which area
+            your visit came from: the country, and for Australia the state and city (for example &quot;Victoria,
+            Melbourne&quot;). This is worked out from your internet connection by the hosting service, so it is
+            approximate (on mobile data it can be your carrier&apos;s city). We never see or store your address, and we
+            never use your device&apos;s location.
+          </li>
+          <li>
+            While the guide is open and on screen, your browser keeps a live connection so we can show how many people
+            are online right now. It shares only a random code that can&apos;t be traced back to you, and nothing about
+            it is saved. The connection ends when you close the page or switch away.
+          </li>
+          <li>We do not store your name, email, address or device location, and never what you type, where you tap on the screen, or what is on your screen.</li>
         </ul>
       </section>
 

@@ -1,7 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { logEvent } from "@/lib/events";
+import { startPresence } from "@/lib/presence";
 
 /**
  * Notices a few signs of frustration and logs them anonymously: repeated quick taps in one spot, and app errors.
@@ -19,7 +21,35 @@ function labelFor(el: Element | null): string {
   return "page";
 }
 
+/** Which page this is, as a fixed label. Garden pages are counted by garden_view instead. */
+function pageSlug(pathname: string): string | null {
+  if (pathname === "/") return "home";
+  if (pathname.startsWith("/sites/")) return null;
+  const slug = pathname.slice(1).replace(/[^a-z0-9-]/g, "");
+  return ["about", "get-involved", "privacy"].includes(slug) ? slug : "other";
+}
+
+/** Approximate area of this visit (see app/api/geo/route.ts). Gives up quietly after 2 seconds. */
+async function fetchGeo(): Promise<{ country?: string; region?: string; city?: string }> {
+  try {
+    const res = await fetch("/api/geo", { cache: "no-store", signal: AbortSignal.timeout(2000) });
+    return res.ok ? await res.json() : {};
+  } catch {
+    return {};
+  }
+}
+
 export function Tracker() {
+  const pathname = usePathname();
+  // counted as "online now" while this page is open and visible (a live connection, nothing saved)
+  useEffect(() => startPresence(), []);
+
+  // one page view each time the page changes (the garden panel logs garden_view itself)
+  useEffect(() => {
+    const slug = pageSlug(pathname);
+    if (slug) logEvent("page_open", { detail: slug });
+  }, [pathname]);
+
   useEffect(() => {
     // device class, once per visit
     try {
@@ -28,13 +58,13 @@ export function Tracker() {
         const w = window.innerWidth;
         const detail = w < 640 ? "phone" : w < 1024 ? "tablet" : "desktop";
         const sampled = Math.random() < 0.1;
-        const send = () => {
+        const send = async () => {
           const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
           const ms = sampled && nav && nav.domContentLoadedEventEnd > 0 ? nav.domContentLoadedEventEnd : undefined;
-          logEvent("visit_info", { detail, value: ms });
+          logEvent("visit_info", { detail, value: ms, ...(await fetchGeo()) });
         };
-        if (document.readyState === "complete") send();
-        else window.addEventListener("load", send, { once: true });
+        if (document.readyState === "complete") void send();
+        else window.addEventListener("load", () => void send(), { once: true });
       }
     } catch { /* storage blocked: skip */ }
 

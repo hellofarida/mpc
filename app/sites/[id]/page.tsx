@@ -18,8 +18,8 @@ export default function GardenPage({ params }: { params: Promise<{ id: string }>
 async function Garden({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return (
-    <main className="mx-auto w-full max-w-xl space-y-4 p-4">
-      <Link href="/" className="text-sm underline">
+    <main className="mx-auto w-full max-w-xl">
+      <Link href="/" className="block p-4 text-sm underline">
         ← Map
       </Link>
       <GardenDetail id={id} />

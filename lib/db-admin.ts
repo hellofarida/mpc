@@ -88,14 +88,14 @@ export async function readSummaries(): Promise<Record<string, Summary>> {
 
 // ---------- reads for the analytics report (events and check-ins are closed to visitors) ----------
 
-export type EventRow = { event: string; site_id: string | null; maps_app: string | null; device_id: string; session_id: string | null; placement: string | null; detail: string | null; value: number | null; created_at: string };
+export type EventRow = { event: string; site_id: string | null; maps_app: string | null; device_id: string; session_id: string | null; placement: string | null; detail: string | null; value: number | null; country: string | null; region: string | null; city: string | null; created_at: string };
 export type CheckinRow = { site_id: string; mode: string; device_id: string; favourite_site_id: string | null; comment: string | null; created_at: string; is_test: boolean };
 
 export async function readEventsSince(sinceIso: string): Promise<EventRow[]> {
   const db = admin();
   const out: EventRow[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await db.from("events").select("event,site_id,maps_app,device_id,session_id,placement,detail,value,created_at").gte("created_at", sinceIso).order("id").range(from, from + 999);
+    const { data, error } = await db.from("events").select("event,site_id,maps_app,device_id,session_id,placement,detail,value,country,region,city,created_at").gte("created_at", sinceIso).order("id").range(from, from + 999);
     check("events", error);
     out.push(...((data ?? []) as EventRow[]));
     if (!data || data.length < 1000) return out;

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlainCard as Card, PlainCardContent as CardContent, PlainCardHeader as CardHeader, PlainCardTitle as CardTitle } from "@/components/plain-card";
 import type { SiteFacts } from "@/lib/facts";
 import { GROUPS, GROUP_LABELS } from "@/lib/groups";
 

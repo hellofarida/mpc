@@ -15,10 +15,17 @@ export const STEP_LABELS: Record<string, string> = {
   log_tap: "Log sighting",
   join_tap: "Join / Volunteer",
 };
+const PAGE_LABELS: Record<string, string> = { home: "Map (home)", about: "About", "get-involved": "Get involved", privacy: "Privacy", other: "Other page" };
+const STATES: Record<string, string> = { VIC: "Victoria", NSW: "New South Wales", QLD: "Queensland", SA: "South Australia", WA: "Western Australia", TAS: "Tasmania", ACT: "Australian Capital Territory", NT: "Northern Territory" };
+const isHome = (e: EventRow) => e.event === "page_open" && (!e.detail || e.detail === "home");
 const TZ = "Australia/Melbourne";
 
 export type SiteRef = { id: string; name: string };
 export type Analytics = {
+  /** Unique pageviews: each page counted once per visit (a garden's panel counts as that garden's page). */
+  pageviews: { uniqueTotal: number; viewsTotal: number; pages: { label: string; unique: number; views: number }[] };
+  /** Approximate visit locations (connection-based, never device location). State and city for Australia only. */
+  location: { australia: number; states: { label: string; visits: number }[]; cities: { label: string; visits: number }[]; otherCountries: { label: string; visits: number }[]; unknown: number };
   /** Visits with a tap in the last 5 and 30 minutes (taps only: a visitor reading quietly isn't counted). */
   activeNow: { last5: number; last30: number };
   since: string;
@@ -107,14 +114,15 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
   ].map((n) => ({ label: STEP_LABELS[n], visits: visits.filter((v) => has(v, n)).length }));
   reach.push({ label: "Checked in", visits: visits.filter(checkedIn).length });
 
-  const collapse = (v: EventRow[]) => steps(v).map((e) => STEP_LABELS[e.event] ?? e.event).filter((l, i, a) => i === 0 || l !== a[i - 1]);
+  const stepLabel = (e: EventRow) => (e.event === "page_open" && !isHome(e) ? PAGE_LABELS[e.detail ?? "other"] ?? "Page" : STEP_LABELS[e.event] ?? e.event);
+  const collapse = (v: EventRow[]) => steps(v).map(stepLabel).filter((l, i, a) => i === 0 || l !== a[i - 1]);
   const paths = count(visits.filter((v) => steps(v).length > 0), (v) => { const p = collapse(v); return p.length > 6 ? p.slice(0, 6).join(" → ") + " → …" : p.join(" → "); })
     .slice(0, 10).map(([path, n]) => ({ path, visits: n }));
-  const exits = count(visits, (v) => (steps(v).length ? STEP_LABELS[steps(v)[steps(v).length - 1].event] : "Other page (no steps)")).map(([label, n]) => ({ label, visits: n }));
+  const exits = count(visits, (v) => (steps(v).length ? stepLabel(steps(v)[steps(v).length - 1]) : "Other page (no steps)")).map(([label, n]) => ({ label, visits: n }));
 
   const lengths = visits.map((v) => (t(v[v.length - 1]) - t(v[0])) / 1000);
   const toGarden = garden.map((v) => {
-    const open = v.find((e) => e.event === "page_open");
+    const open = v.find(isHome);
     return open ? (t(v.find((e) => e.event === "garden_view")!) - t(open)) / 1000 : NaN;
   }).filter((n) => !Number.isNaN(n));
 
@@ -129,7 +137,7 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
   const days = count(visits, (v) => day(v[0].created_at)).sort((a, b) => a[0].localeCompare(b[0]));
   const hours = Array.from({ length: 24 }, (_, h) => ({ hour: h, visits: visits.filter((v) => hour(v[0].created_at) === h).length }));
 
-  const onlyMap = visits.filter((v) => steps(v).length > 0 && steps(v).every((e) => e.event === "page_open"));
+  const onlyMap = visits.filter((v) => steps(v).length > 0 && steps(v).every(isHome));
   const gardenBounce = garden.filter((v) => steps(v).every((e) => e.event === "page_open" || e.event === "garden_view") && !checkedIn(v));
   const wantedToGo = visits.filter((v) => has(v, "directions_tap") || has(v, "walk_open"));
   const friction = [
@@ -159,7 +167,33 @@ export function computeAnalytics(rawEvents: EventRow[], rawCheckins: CheckinRow[
   const loads = sig("visit_info").map((e) => e.value).filter((n): n is number => typeof n === "number" && n > 0);
   const problemEvents = ["rage_click", "error", "slow", "chat_declined"];
 
+  const pageMap = new Map<string, { views: number; visits: Set<number> }>();
+  visits.forEach((v, i) => {
+    for (const e of v) {
+      const label = e.event === "page_open" ? PAGE_LABELS[e.detail ?? "home"] ?? "Other page" : e.event === "garden_view" && e.site_id ? `${name(e.site_id)} (garden)` : null;
+      if (!label) continue;
+      const m = pageMap.get(label) ?? { views: 0, visits: new Set<number>() };
+      m.views++;
+      m.visits.add(i);
+      pageMap.set(label, m);
+    }
+  });
+  const pages = [...pageMap].map(([label, m]) => ({ label, unique: m.visits.size, views: m.views })).sort((a, b) => b.unique - a.unique);
+
+  const countries = new Intl.DisplayNames(["en"], { type: "region" });
+  const geo = visits.map((v) => v.find((e) => e.event === "visit_info" && e.country)).filter((e): e is EventRow => !!e);
+  const au = geo.filter((e) => e.country === "AU");
+  const location = {
+    australia: au.length,
+    states: count(au.filter((e) => e.region), (e) => STATES[e.region!] ?? e.region!).map(([label, n]) => ({ label, visits: n })),
+    cities: count(au.filter((e) => e.city), (e) => e.city!).slice(0, 10).map(([label, n]) => ({ label, visits: n })),
+    otherCountries: count(geo.filter((e) => e.country !== "AU"), (e) => countries.of(e.country!) ?? e.country!).map(([label, n]) => ({ label, visits: n })),
+    unknown: visits.length - geo.length,
+  };
+
   return {
+    pageviews: { uniqueTotal: pages.reduce((n, p) => n + p.unique, 0), viewsTotal: pages.reduce((n, p) => n + p.views, 0), pages },
+    location,
     frustration: {
       signals: SIGNALS.map(([k, label, hint]) => ({ label, hint, times: sig(k).length, visits: sigVisits(k) })),
       byDetail: [...byDetail].sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ signal: STEP_LABELS[k.split("|")[0]] ?? k.split("|")[0].replace("_", " "), detail: k.split("|")[1], times: n })),

@@ -4,15 +4,26 @@ import { LeaveLink } from "@/components/leave-link";
 import { logEvent } from "@/lib/events";
 import { heartscapesJoinUrl, heartscapesVolunteerUrl, INAT_UPLOAD_URL } from "@/lib/links";
 
-export function LogSightingButton({ siteId }: { siteId?: string }) {
+export function LogSightingButton({
+  siteId,
+  className,
+  variant = "default",
+  children = "Log a sighting on iNaturalist",
+}: {
+  siteId?: string;
+  className?: string;
+  variant?: "default" | "outline";
+  children?: React.ReactNode;
+}) {
   return (
     <LeaveLink
       href={INAT_UPLOAD_URL}
       destination="iNaturalist"
-      variant="default"
+      variant={variant}
+      className={className}
       onContinue={() => logEvent("log_tap", { siteId })}
     >
-      Log a sighting on iNaturalist
+      {children}
     </LeaveLink>
   );
 }

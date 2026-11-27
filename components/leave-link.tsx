@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Modal } from "@/components/modal";
 import { logEvent } from "@/lib/events";
 
 /**
@@ -31,13 +32,8 @@ export function LeaveLink({
         {children}
       </Button>
       {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="leave-title"
-          className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/50 p-4 sm:items-center"
-        >
-          <div className="w-full max-w-sm space-y-3 rounded-xl bg-background p-4 shadow-lg">
+        <Modal label="Leaving the MPC guide" onClose={() => setOpen(false)}>
+          <div className="space-y-3">
             <h2 id="leave-title" className="text-base font-semibold">
               You&apos;re leaving the MPC guide
             </h2>
@@ -70,7 +66,7 @@ export function LeaveLink({
               </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

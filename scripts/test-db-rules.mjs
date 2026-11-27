@@ -41,4 +41,8 @@ x = await sb.from("events").insert({ event: "page_open", device_id: dev, placeme
 x = await sb.from("events").insert([{ event: "rage_click", device_id: dev, detail: "site-card" }, { event: "slow", device_id: dev, detail: "chat", value: 9000 }, { event: "visit_info", device_id: dev, detail: "phone" }]); t("batch insert of signals (004)", !x.error, x.error?.message);
 x = await sb.from("events").insert({ event: "error", device_id: dev, detail: "User typed hello there" }); t("reject free text in detail (004)", !!x.error, x.error?.message);
 x = await sb.from("events").insert({ event: "slow", device_id: dev, detail: "chat", value: -5 }); t("reject a negative value (004)", !!x.error, x.error?.message);
+// visit location (006): country always, state and city only for Australia, only on visit_info
+x = await sb.from("events").insert({ event: "visit_info", device_id: dev, detail: "phone", country: "AU", region: "VIC", city: "Melbourne" }); t("add a visit_info with an Australian state and city (006)", !x.error, x.error?.message);
+x = await sb.from("events").insert({ event: "visit_info", device_id: dev, detail: "phone", country: "NZ", city: "Auckland" }); t("reject a city outside Australia (006)", !!x.error, x.error?.message);
+x = await sb.from("events").insert({ event: "page_open", device_id: dev, country: "AU" }); t("reject a location on a page_open (006)", !!x.error, x.error?.message);
 console.log(r.join("\n"));

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Modal } from "@/components/modal";
 import { Input } from "@/components/ui/input";
 import { commentProblem, MAX_COMMENT_CHARS } from "@/lib/comment";
 import { checkIn, checkinDetails, logEvent, type TravelMode } from "@/lib/events";
@@ -15,7 +15,8 @@ const MODES: { mode: TravelMode; label: string }[] = [
   { mode: "other", label: "Other" },
 ];
 
-export function CheckInCard({ siteId, sites }: { siteId: string; sites: { id: string; name: string }[] }) {
+export function CheckInButton({ siteId, sites }: { siteId: string; sites: { id: string; name: string }[] }) {
+  const [open, setOpen] = useState(false);
   const [state, setState] = useState<"idle" | "busy" | "saved" | "repeat" | "error">("idle");
   const [details, setDetails] = useState<"open" | "saving" | "done" | "skipped" | "error">("open");
   const [favourite, setFavourite] = useState("");
@@ -40,11 +41,19 @@ export function CheckInCard({ siteId, sites }: { siteId: string; sites: { id: st
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>I&apos;m here!</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <>
+      <Button data-track="checkin-open" className="flex-1" onClick={() => setOpen(true)}>
+        I&apos;m here!
+      </Button>
+      {open && (
+        <Modal label="I'm here" onClose={() => setOpen(false)}>
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="text-lg font-semibold">I&apos;m here!</h2>
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+                Close
+              </Button>
+            </div>
         {state === "saved" && <p role="status">Thanks for checking in! 🐝</p>}
         {state === "saved" && FULL_CHECKIN && details !== "skipped" && (
           <div className="space-y-2 border-t pt-3">
@@ -127,7 +136,9 @@ export function CheckInCard({ siteId, sites }: { siteId: string; sites: { id: st
         <p className="text-xs text-muted-foreground">
           Anonymous: we save only the garden, how you came and the time.
         </p>
-      </CardContent>
-    </Card>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }

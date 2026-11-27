@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LeaveLink } from "@/components/leave-link";
+import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 
 export type GridSighting = {
@@ -21,13 +22,6 @@ export type GridSighting = {
  */
 export function SightingGrid({ items }: { items: GridSighting[] }) {
   const [open, setOpen] = useState<GridSighting | null>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
   if (items.length === 0) return <p className="text-sm">No sightings with photos yet. Be the first!</p>;
   return (
     <>
@@ -51,14 +45,8 @@ export function SightingGrid({ items }: { items: GridSighting[] }) {
       <p className="mt-2 text-xs text-muted-foreground">Photos belong to the people who took them. Tap a photo for the credit.</p>
 
       {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${open.name}, photo credit`}
-          className="fixed inset-0 z-[2000] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4"
-          onClick={(e) => e.target === e.currentTarget && setOpen(null)}
-        >
-          <div className="w-full max-w-sm space-y-3 rounded-t-2xl bg-background p-4 shadow-lg sm:rounded-2xl">
+        <Modal label={`${open.name}, photo credit`} onClose={() => setOpen(null)}>
+          <div className="space-y-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={open.photoUrl} alt={open.name} referrerPolicy="no-referrer" className="max-h-[50dvh] w-full rounded-lg object-contain" />
             <div className="space-y-0.5 text-sm">
@@ -77,7 +65,7 @@ export function SightingGrid({ items }: { items: GridSighting[] }) {
               </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

@@ -14,6 +14,7 @@
     "summaries": "node --env-file=.env.local node_modules/.bin/tsx scripts/summaries.ts",
     "test:facts": "tsx scripts/check-facts.ts",
     "test:chat": "tsx scripts/check-chat.ts",
+    "site-images": "tsx scripts/site-images.ts",
     "route": "tsx scripts/route.ts",
     "analytics": "node --env-file=.env.local node_modules/.bin/tsx scripts/analytics.ts",
     "analytics:report": "node --env-file=.env.local node_modules/.bin/tsx scripts/analytics-report.ts",
