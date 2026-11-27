@@ -45,8 +45,7 @@ export default function PrivacyPage() {
           <li>
             Signs that something went wrong or was annoying, each as a short fixed label with the time and your
             anonymous IDs: for example tapping the same spot several times quickly, an error, a slow answer, opening a
-            garden and closing it straight away, cancelling the &quot;You&apos;re leaving&quot; box, a search that found
-            nothing, or a question the chatbot couldn&apos;t answer (the kind of question, never the words). We also note
+            garden and closing it straight away, cancelling the &quot;You&apos;re leaving&quot; box, or a question the chatbot couldn&apos;t answer (the kind of question, never the words). We also note
             whether you&apos;re on a phone, tablet or computer, and sometimes how fast the page loaded.
           </li>
           <li>We do not store your name, email, or location, and never what you type, where you tap on the screen, or what is on your screen.</li>
@@ -56,9 +55,8 @@ export default function PrivacyPage() {
       <section className="space-y-1">
         <h2 className="text-base font-semibold">Your location</h2>
         <p>
-          If you share your location, it is used on your phone to show &quot;you are here&quot; and to start a walk
-          from where you are. It is never sent to us or stored. When you open a walk in Google or Apple Maps, those
-          apps handle it under their own policies.
+          This guide doesn&apos;t ask for your location. When you open directions or a walk in Google or Apple Maps,
+          those apps may ask for it and handle it under their own policies.
         </p>
       </section>
 

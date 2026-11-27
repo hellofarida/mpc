@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Chatbot } from "@/components/chatbot";
 import { CheckInCard } from "@/components/checkin-card";
 import { DirectionsButtons } from "@/components/directions-buttons";
-import { LeaveLink } from "@/components/leave-link";
+import { SightingGrid } from "@/components/sighting-grid";
+import { SiteMiniMap } from "@/components/site-mini-map";
+import { SiteStats, type MonthCount } from "@/components/site-stats";
 import { JoinButtons, LogSightingButton } from "@/components/link-buttons";
 import { GardenViewLogger } from "@/components/view-logger";
 import { getSightingsFile, getSite, getSites, getSummaries } from "@/lib/content";
@@ -11,7 +13,18 @@ import { siteCentre } from "@/lib/sites";
 import { computeFacts } from "@/lib/facts";
 import { getSummary } from "@/lib/summary";
 import { displayName } from "@/lib/sightings";
-const SHOWN = 12;
+
+const SHOWN = 12; // photos in the grid (4 rows of 3)
+
+/** The 12 months up to the latest data, oldest first, as short month names. */
+function monthCounts(dates: string[], upTo: string): MonthCount[] {
+  const end = new Date(`${upTo.slice(0, 7)}-01T00:00:00Z`);
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - (11 - i), 1));
+    const key = d.toISOString().slice(0, 7);
+    return { label: d.toLocaleString("en-AU", { month: "short", timeZone: "UTC" }), count: dates.filter((x) => x.startsWith(key)).length };
+  });
+}
 
 /** Everything about one garden. Used by the full page (/sites/[id]) and the slide-out panel on the explorer. */
 export async function GardenDetail({ id }: { id: string }) {
@@ -20,11 +33,14 @@ export async function GardenDetail({ id }: { id: string }) {
 
   const centre = siteCentre(site);
   const [data, summaries, allSites] = await Promise.all([getSightingsFile(), getSummaries(), getSites()]);
-  const summary = getSummary(site, computeFacts(site.id, data), summaries[site.id]);
-  const sightings = data.sightings
-    .filter((s) => s.siteId === site.id)
-    .sort((a, b) => b.observedOn.localeCompare(a.observedOn))
-    .slice(0, SHOWN);
+  const facts = computeFacts(site.id, data);
+  const summary = getSummary(site, facts, summaries[site.id]);
+  const mine = data.sightings.filter((s) => s.siteId === site.id).sort((a, b) => b.observedOn.localeCompare(a.observedOn));
+  const months = monthCounts(mine.map((s) => s.observedOn), data.dataUpTo);
+  const photos = mine
+    .filter((s) => s.photo)
+    .slice(0, SHOWN)
+    .map((s) => ({ id: s.id, url: s.url, photoUrl: s.photo!.url, name: displayName(s), date: s.observedOn, observer: s.observer, attribution: s.photo!.attribution }));
 
   return (
     <div className="space-y-4">
@@ -47,6 +63,7 @@ export async function GardenDetail({ id }: { id: string }) {
         <CardTitle>Where</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <SiteMiniMap name={site.name} points={site.addresses.map((a) => ({ lat: a.lat, lng: a.lng }))} />
         <ul className="list-disc space-y-1 pl-5 text-sm">
           {site.addresses.map((a) => (
             <li key={a.label}>{a.label}</li>
@@ -70,51 +87,16 @@ export async function GardenDetail({ id }: { id: string }) {
       </CardContent>
     </Card>
 
+    <SiteStats facts={facts} months={months} />
+
     <CheckInCard siteId={site.id} sites={allSites.map((s) => ({ id: s.id, name: s.name }))} />
 
     <Card>
       <CardHeader>
         <CardTitle>Recent sightings</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {sightings.length === 0 ? (
-          <p className="text-sm">No sightings yet. Be the first!</p>
-        ) : (
-          <ul className="space-y-4">
-            {sightings.map((s) => (
-              <li key={s.id} className="flex gap-3">
-                {s.photo && (
-                  // Hot-linked from iNaturalist on purpose: photos are never copied (CC BY-NC).
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={s.photo.url}
-                    alt={displayName(s)}
-                    width={80}
-                    height={80}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    className="size-20 shrink-0 rounded-md object-cover"
-                  />
-                )}
-                <div className="min-w-0 space-y-0.5 text-sm">
-                  <p className="font-medium">{displayName(s)}</p>
-                  <p className="text-muted-foreground">
-                    {s.observedOn} · observed by {s.observer}
-                  </p>
-                  {s.photo && <p className="text-xs text-muted-foreground">Photo: {s.photo.attribution}</p>}
-                  <LeaveLink
-                    href={s.url}
-                    destination="iNaturalist (original observation)"
-                    variant="link"
-                    className="h-auto p-0 text-xs"
-                  >
-                    See the original
-                  </LeaveLink>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+      <CardContent className="space-y-2">
+        <SightingGrid items={photos} />
         <p className="text-xs text-muted-foreground">Data up to {data.dataUpTo}</p>
       </CardContent>
     </Card>

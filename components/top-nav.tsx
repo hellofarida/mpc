@@ -1,26 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/logo";
 
 const LINKS = [
   { href: "/about", label: "About" },
-  { href: "/#map", label: "Map" },
-  { href: "/#plan-walk", label: "Plan walk" },
   { href: "/get-involved", label: "Get involved" },
 ];
 
 export function TopNav() {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-
-  function go(href: string) {
-    setOpen(false);
-    // Already on the map page: the hash change alone won't open the walk planner, so tell it.
-    if (pathname === "/" && href === "/#plan-walk") window.dispatchEvent(new Event("mpc:plan-walk"));
-  }
 
   return (
     <header className="sticky top-0 z-[1500] h-14 border-b bg-background">
@@ -36,7 +26,7 @@ export function TopNav() {
         <ul className="hidden items-center gap-6 text-sm md:flex">
           {LINKS.map((l) => (
             <li key={l.href}>
-              <Link href={l.href} className="hover:underline" onClick={() => go(l.href)}>
+              <Link href={l.href} className="hover:underline" onClick={() => setOpen(false)}>
                 {l.label}
               </Link>
             </li>
@@ -59,7 +49,7 @@ export function TopNav() {
         <ul id="main-menu" className="absolute inset-x-0 top-full divide-y border-b bg-background px-4 text-sm shadow-md md:hidden">
           {LINKS.map((l) => (
             <li key={l.href}>
-              <Link href={l.href} className="block py-3" onClick={() => go(l.href)}>
+              <Link href={l.href} className="block py-3" onClick={() => setOpen(false)}>
                 {l.label}
               </Link>
             </li>

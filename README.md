@@ -9,8 +9,9 @@ A mobile web guide to the Melbourne Pollinator Corridor's 8 main sites, built on
 4. Then run `supabase/migrations/002_content_tables.sql` the same way (gardens, sightings, summaries tables, public read-only), add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Supabase > Project settings > API; a secret, never `NEXT_PUBLIC_`, never in the browser) and run `npm run db:seed` once to load the saved files.
 5. Phase 2: run `supabase/migrations/003_checkin_details_and_analytics.sql` the same way **before deploying the Phase 2 code** (events now carry a session id and placement, and the app calls `checkin_details`).
 6. Phase 2, frustration logging: run `supabase/migrations/004_frustration_events.sql` the same way **before deploying that code** (events gain `detail` and `value` columns; without it, no events save).
-7. `npm run test:db` checks the database rules with the public key (all lines should say PASS).
-8. `npm run dev`
+7. Walks of up to 8 stops: run `supabase/migrations/005_walks_up_to_8_stops.sql` the same way **before deploying that code**.
+8. `npm run test:db` checks the database rules with the public key (all lines should say PASS).
+9. `npm run dev`
 
 ## Data
 The app reads gardens, sightings and summaries from the database (public read-only tables). The files in `data/` are the seed and the offline fallback (used for a minute if the database can't be reached) and the fixtures for the tests. `npm run sightings` and `npm run summaries` write the files and, when `SUPABASE_SERVICE_ROLE_KEY` is set, the database too.

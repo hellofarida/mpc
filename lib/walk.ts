@@ -1,7 +1,8 @@
 import { siteCentre, sortWestToEast, type Site } from "@/lib/sites";
 
 export const MIN_STOPS = 2;
-export const MAX_STOPS = 5;
+// All 8 main sites. Google documents up to 9 waypoints for these links; Apple Maps only routes to the first stop.
+export const MAX_STOPS = 8;
 
 type Point = { lat: number; lng: number };
 

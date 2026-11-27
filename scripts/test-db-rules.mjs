@@ -11,8 +11,9 @@ x = await sb.from("events").insert({ event: "page_open", device_id: dev }); t("a
 x = await sb.from("events").insert({ event: "walk_open", stops: ["napier-st-gardens", "101-cobden-st"], device_id: dev }); t("add a walk_open with 2 stops", !x.error, x.error?.message);
 x = await sb.from("events").insert({ event: "hack", device_id: dev }); t("reject an unknown event name", !!x.error, x.error?.message);
 x = await sb.from("events").insert({ event: "garden_view", site_id: "fake-site", device_id: dev }); t("reject an unknown site", !!x.error, x.error?.message);
-x = await sb.from("events").insert({ event: "walk_open", stops: ["napier-st-gardens","101-cobden-st","bank-st-1st-site","bank-st-2nd-site","port-melbourne-primary"], device_id: dev }); t("add a walk_open with 5 stops (needs 002)", !x.error, x.error?.message);
-x = await sb.from("events").insert({ event: "walk_open", stops: ["napier-st-gardens","101-cobden-st","bank-st-1st-site","bank-st-2nd-site","port-melbourne-primary","st-martins-youth-arts-centre"], device_id: dev }); t("reject a walk with 6 stops", !!x.error, x.error?.message);
+const eight = ["south-melbourne-bee-gardens","101-cobden-st","napier-st-gardens","bank-st-1st-site","bank-st-2nd-site","st-martins-youth-arts-centre","melbourne-grammar-wadhurst","port-melbourne-primary"];
+x = await sb.from("events").insert({ event: "walk_open", stops: eight, device_id: dev }); t("add a walk_open with all 8 stops (needs 005)", !x.error, x.error?.message);
+x = await sb.from("events").insert({ event: "walk_open", stops: [...eight, "napier-st-gardens"], device_id: dev }); t("reject a walk with 9 stops", !!x.error, x.error?.message);
 x = await sb.from("events").select("*"); t("can't read events", !!x.error || x.data.length === 0, x.error?.message ?? `${x.data.length} rows`);
 x = await sb.from("events").delete().eq("device_id", dev).select(); t("can't delete events", !!x.error || x.data.length === 0, x.error?.message ?? `${x.data?.length} rows`);
 x = await sb.from("checkins").insert({ site_id: site, mode: "walked", device_id: dev }); t("can't add check-ins directly", !!x.error, x.error?.message);

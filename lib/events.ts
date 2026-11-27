@@ -27,7 +27,7 @@ export type EventName =
 export type EventExtras = {
   siteId?: string;
   mapsApp?: "google" | "apple";
-  stops?: string[]; // walk_open only: 2–5 site IDs
+  stops?: string[]; // walk_open only: 2–8 site IDs
   placement?: string; // where a tap happened, e.g. "garden-join" (lowercase letters, digits, dashes)
   detail?: string; // a short fixed code, e.g. "site-card" or "geo-denied": never free text
   value?: number; // a small number, e.g. milliseconds
